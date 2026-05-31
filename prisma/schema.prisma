@@ -1,0 +1,35 @@
+// Prisma schema — single-vendor ecommerce app
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model ErrorLog {
+  id         String   @id @default(cuid())
+  level      String   @default("error")
+  message    String   @db.Text
+  stack      String?  @db.LongText
+  code       String?
+  statusCode Int?
+  userId     String?
+  route      String?
+  method     String?
+  userAgent  String?  @db.Text
+  ipAddress  String?
+  metadata   Json?
+  resolved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([level])
+  @@index([createdAt])
+  @@index([resolved])
+  @@index([userId])
+  @@map("error_logs")
+}

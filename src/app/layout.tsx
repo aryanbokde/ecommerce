@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "sonner";
+import { setupGlobalErrorHandlers } from "@/lib/global-error-handler";
 import "./globals.css";
+
+// Registers process.on("uncaughtException") and process.on("unhandledRejection")
+// once per Node.js process. The guard inside prevents double-registration on
+// hot-reloads. instrumentation.ts also calls this; the guard makes it idempotent.
+setupGlobalErrorHandlers();
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,8 +20,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Enterprise eCommerce Platform",
-  description: "Phase 1 architecture for a production-ready eCommerce application.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+  title: { template: "%s | MyShop", default: "MyShop" },
+  description: "Your one-stop ecommerce store",
+  openGraph: { type: "website", locale: "en_US" },
+  robots: { index: true, follow: true },
+  icons: { icon: "/favicon.ico" },
 };
 
 export default function RootLayout({
@@ -27,7 +38,11 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+          <nav aria-label="Main navigation" className="w-full border-b px-6 py-3" />
+          {children}
+          <Toaster richColors closeButton position="top-right" />
+        </body>
     </html>
   );
 }
