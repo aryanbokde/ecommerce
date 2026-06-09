@@ -85,7 +85,7 @@ export default function GlobalError({
 
           <CardFooter className="justify-center gap-3">
             <Button onClick={reset}>Try again</Button>
-            <Button variant="outline" render={<Link href="/" />}>
+            <Button variant="outline" nativeButton={false} render={<Link href="/" />}>
               Go to home
             </Button>
           </CardFooter>

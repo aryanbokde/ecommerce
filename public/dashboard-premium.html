@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard — Premium Color Schemes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Poppins:wght@500;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --radius:12px;
+      --shadow: 0 10px 30px rgba(2,6,23,0.06);
+      --card-shadow: 0 10px 28px rgba(2,6,23,0.06);
+      --glass: rgba(2,6,23,0.03);
+      --success:#10B981;
+      --danger:#EF4444;
+    }
+
+    /* ── SCHEME 1: MODERN GRADIENT (Default) ── */
+    :root[data-theme="light"][data-scheme="modern"]{
+      --bg: #F6F8FA;
+      --panel: #FFFFFF;
+      --muted: #6B7280;
+      --text: #0F172A;
+      --primary: #6366F1;
+      --accent: #06B6D4;
+      --surface-2: #F3F4F6;
+    }
+    :root[data-theme="dark"][data-scheme="modern"]{
+      --bg: #0B1220;
+      --panel: #071126;
+      --muted: #94A3B8;
+      --text: #E6EEF8;
+      --primary: #8B5CF6;
+      --accent: #06B6D4;
+      --surface-2: rgba(255,255,255,0.02);
+      --glass: rgba(255,255,255,0.03);
+    }
+
+    /* ── SCHEME 2: VIBRANT ENERGY ── */
+    :root[data-theme="light"][data-scheme="vibrant"]{
+      --bg: #FAF9F7;
+      --panel: #FFFBF5;
+      --muted: #78716C;
+      --text: #1A1410;
+      --primary: #F97316;
+      --accent: #EC4899;
+      --surface-2: #F5F3F0;
+    }
+    :root[data-theme="dark"][data-scheme="vibrant"]{
+      --bg: #16110F;
+      --panel: #2B1F1A;
+      --muted: #A89080;
+      --text: #FEF5F1;
+      --primary: #FB923C;
+      --accent: #F43F5E;
+      --surface-2: rgba(255,255,255,0.04);
+      --glass: rgba(255,255,255,0.04);
+    }
+
+    /* ── SCHEME 3: LUXURY DARK ── */
+    :root[data-theme="light"][data-scheme="luxury"]{
+      --bg: #FEFDFB;
+      --panel: #FFFFFE;
+      --muted: #71717A;
+      --text: #18181B;
+      --primary: #7C3AED;
+      --accent: #D946EF;
+      --surface-2: #F4F4F5;
+    }
+    :root[data-theme="dark"][data-scheme="luxury"]{
+      --bg: #0D0B15;
+      --panel: #18121F;
+      --muted: #A1A1AA;
+      --text: #FAFAFA;
+      --primary: #A78BFA;
+      --accent: #F0ABFC;
+      --surface-2: rgba(255,255,255,0.03);
+      --glass: rgba(255,255,255,0.02);
+    }
+
+    /* ── SCHEME 4: TECH BOLD ── */
+    :root[data-theme="light"][data-scheme="tech"]{
+      --bg: #F8FAFC;
+      --panel: #FFFFFF;
+      --muted: #64748B;
+      --text: #0F172A;
+      --primary: #0EA5E9;
+      --accent: #06B6D4;
+      --surface-2: #F1F5F9;
+    }
+    :root[data-theme="dark"][data-scheme="tech"]{
+      --bg: #020617;
+      --panel: #0F172A;
+      --muted: #94A3B8;
+      --text: #F1F5F9;
+      --primary: #38BDF8;
+      --accent: #00D9FF;
+      --surface-2: rgba(255,255,255,0.02);
+      --glass: rgba(255,255,255,0.03);
+    }
+
+    /* ── SCHEME 5: EMERALD ── */
+    :root[data-theme="light"][data-scheme="emerald"]{
+      --bg:#F4FBF7; --panel:#FFFFFF; --muted:#5F6B66; --text:#0B1F17;
+      --primary:#059669; --accent:#14B8A6; --surface-2:#ECF6F1;
+    }
+    :root[data-theme="dark"][data-scheme="emerald"]{
+      --bg:#07140F; --panel:#0C1F18; --muted:#84A89A; --text:#E6F5EE;
+      --primary:#34D399; --accent:#2DD4BF; --surface-2:rgba(255,255,255,0.03); --glass:rgba(255,255,255,0.03);
+    }
+
+    /* ── SCHEME 6: ROSE ── */
+    :root[data-theme="light"][data-scheme="rose"]{
+      --bg:#FFF7F9; --panel:#FFFFFF; --muted:#7A6068; --text:#2A0E15;
+      --primary:#E11D48; --accent:#FB7185; --surface-2:#FCEEF1;
+    }
+    :root[data-theme="dark"][data-scheme="rose"]{
+      --bg:#1A0B10; --panel:#251017; --muted:#B98C97; --text:#FDEFF2;
+      --primary:#FB7185; --accent:#F472B6; --surface-2:rgba(255,255,255,0.04); --glass:rgba(255,255,255,0.04);
+    }
+
+    /* ── SCHEME 7: AMBER SUNSET ── */
+    :root[data-theme="light"][data-scheme="amber"]{
+      --bg:#FFFBF4; --panel:#FFFFFF; --muted:#7C6B53; --text:#241A0E;
+      --primary:#D97706; --accent:#EA580C; --surface-2:#FBF1E2;
+    }
+    :root[data-theme="dark"][data-scheme="amber"]{
+      --bg:#14100A; --panel:#1F1810; --muted:#B39A78; --text:#FBF3E7;
+      --primary:#FBBF24; --accent:#FB923C; --surface-2:rgba(255,255,255,0.03); --glass:rgba(255,255,255,0.03);
+    }
+
+    /* ── SCHEME 8: OCEAN ── */
+    :root[data-theme="light"][data-scheme="ocean"]{
+      --bg:#F3F8FF; --panel:#FFFFFF; --muted:#5C6B82; --text:#0B172A;
+      --primary:#0284C7; --accent:#4F46E5; --surface-2:#E9F1FB;
+    }
+    :root[data-theme="dark"][data-scheme="ocean"]{
+      --bg:#060E1C; --panel:#0B1628; --muted:#8298B6; --text:#E7F0FB;
+      --primary:#38BDF8; --accent:#818CF8; --surface-2:rgba(255,255,255,0.03); --glass:rgba(255,255,255,0.03);
+    }
+
+    /* ── SCHEME 9: GRAPE ROYALE ── */
+    :root[data-theme="light"][data-scheme="grape"]{
+      --bg:#FAF6FF; --panel:#FFFFFF; --muted:#6E6280; --text:#1B0F2A;
+      --primary:#7C3AED; --accent:#2563EB; --surface-2:#F1EBFB;
+    }
+    :root[data-theme="dark"][data-scheme="grape"]{
+      --bg:#100A1C; --panel:#190F29; --muted:#9C8FB5; --text:#F1EAFB;
+      --primary:#A78BFA; --accent:#60A5FA; --surface-2:rgba(255,255,255,0.03); --glass:rgba(255,255,255,0.02);
+    }
+
+    /* ── SCHEME 10: SLATE (mono + teal) ── */
+    :root[data-theme="light"][data-scheme="slate"]{
+      --bg:#F7F8FA; --panel:#FFFFFF; --muted:#64748B; --text:#0F172A;
+      --primary:#334155; --accent:#0D9488; --surface-2:#EEF1F5;
+    }
+    :root[data-theme="dark"][data-scheme="slate"]{
+      --bg:#0A0F16; --panel:#111826; --muted:#8A99AD; --text:#EAEFF6;
+      --primary:#94A3B8; --accent:#2DD4BF; --surface-2:rgba(255,255,255,0.03); --glass:rgba(255,255,255,0.03);
+    }
+
+    /* ── SCHEME 11: INDIGO (deep blue-violet) ── */
+    :root[data-theme="light"][data-scheme="indigo"]{
+      --bg:#F4F5FF; --panel:#FFFFFF; --muted:#5E6388; --text:#11132E;
+      --primary:#4F46E5; --accent:#7C3AED; --surface-2:#EBEDFC;
+    }
+    :root[data-theme="dark"][data-scheme="indigo"]{
+      --bg:#0A0B1C; --panel:#12132B; --muted:#8E92C2; --text:#EBECFB;
+      --primary:#818CF8; --accent:#A78BFA; --surface-2:rgba(255,255,255,0.03); --glass:rgba(255,255,255,0.03);
+    }
+
+    /* ── SCHEME 12: CRIMSON (red + gold) ── */
+    :root[data-theme="light"][data-scheme="crimson"]{
+      --bg:#FFF6F4; --panel:#FFFFFF; --muted:#7C5E5A; --text:#2A1010;
+      --primary:#DC2626; --accent:#F59E0B; --surface-2:#FBEAE6;
+    }
+    :root[data-theme="dark"][data-scheme="crimson"]{
+      --bg:#170A09; --panel:#220F0D; --muted:#B58C85; --text:#FBECE8;
+      --primary:#F87171; --accent:#FBBF24; --surface-2:rgba(255,255,255,0.03); --glass:rgba(255,255,255,0.03);
+    }
+
+    /* ── SCHEME 13: FOREST (deep green + lime) ── */
+    :root[data-theme="light"][data-scheme="forest"]{
+      --bg:#F4F9F0; --panel:#FFFFFF; --muted:#5C6B53; --text:#13210C;
+      --primary:#15803D; --accent:#65A30D; --surface-2:#EAF3E1;
+    }
+    :root[data-theme="dark"][data-scheme="forest"]{
+      --bg:#0A130A; --panel:#101C0F; --muted:#8AA381; --text:#ECF5E6;
+      --primary:#4ADE80; --accent:#A3E635; --surface-2:rgba(255,255,255,0.03); --glass:rgba(255,255,255,0.03);
+    }
+
+    /* ── SCHEME 14: CYAN (teal-cyan) ── */
+    :root[data-theme="light"][data-scheme="cyan"]{
+      --bg:#F0FBFD; --panel:#FFFFFF; --muted:#4F6B70; --text:#08222A;
+      --primary:#0891B2; --accent:#0EA5E9; --surface-2:#E2F4F8;
+    }
+    :root[data-theme="dark"][data-scheme="cyan"]{
+      --bg:#06141A; --panel:#0A1F26; --muted:#7BA3AD; --text:#E5F5FA;
+      --primary:#22D3EE; --accent:#38BDF8; --surface-2:rgba(255,255,255,0.03); --glass:rgba(255,255,255,0.03);
+    }
+
+    /* ── SCHEME 15: MOCHA (warm coffee — premium light) ── */
+    :root[data-theme="light"][data-scheme="mocha"]{
+      --bg:#FAF6F1; --panel:#FFFDFA; --muted:#7A6A58; --text:#27190E;
+      --primary:#92400E; --accent:#B45309; --surface-2:#F1E9DF;
+    }
+    :root[data-theme="dark"][data-scheme="mocha"]{
+      --bg:#140F0A; --panel:#1E1710; --muted:#B0997F; --text:#F5EDE2;
+      --primary:#D6A06A; --accent:#E0B07C; --surface-2:rgba(255,255,255,0.03); --glass:rgba(255,255,255,0.03);
+    }
+
+    /* ── SCHEME 16: PLUM (purple + magenta) ── */
+    :root[data-theme="light"][data-scheme="plum"]{
+      --bg:#FCF4FB; --panel:#FFFFFF; --muted:#73607A; --text:#240E2A;
+      --primary:#9333EA; --accent:#DB2777; --surface-2:#F6E9F6;
+    }
+    :root[data-theme="dark"][data-scheme="plum"]{
+      --bg:#150A18; --panel:#1F1024; --muted:#A98FB3; --text:#F5E9F7;
+      --primary:#C084FC; --accent:#F472B6; --surface-2:rgba(255,255,255,0.03); --glass:rgba(255,255,255,0.03);
+    }
+
+    /* ── Theme-level depth: light cards must LIFT off bg (faint shadow = flat),
+         dark cards use deeper ambient shadow. Overrides the :root defaults. ── */
+    :root[data-theme="light"]{
+      --shadow: 0 6px 20px rgba(15,23,42,0.08);
+      --card-shadow: 0 10px 28px rgba(15,23,42,0.08), 0 2px 6px rgba(15,23,42,0.05);
+      --glass: rgba(15,23,42,0.04);
+    }
+    :root[data-theme="dark"]{
+      --shadow: 0 12px 32px rgba(0,0,0,0.45);
+      --card-shadow: 0 14px 34px rgba(0,0,0,0.40);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background:var(--bg);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      font-weight:400;
+      line-height:1.45;
+      transition:background .2s linear, color .2s linear;
+    }
+
+    .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh;gap:24px;padding:28px}
+    .sidebar{background:linear-gradient(180deg, rgba(0,0,0,0.02), transparent);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);height:calc(100vh - 56px);position:sticky;top:28px;display:flex;flex-direction:column}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg, var(--primary), var(--accent));display:grid;place-items:center;color:white;font-weight:600}
+    .brand h1{margin:0;font-family:Poppins, Inter;font-size:15px;font-weight:600}
+    .nav{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+    .nav a{display:flex;gap:12px;align-items:center;padding:10px;border-radius:10px;color:var(--muted);text-decoration:none;font-size:14px}
+    .nav a.active{background:var(--panel);box-shadow:var(--card-shadow);color:var(--text)}
+
+    .main{padding:18px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+    .search{flex:1;max-width:520px;display:flex;align-items:center;background:var(--panel);padding:10px;border-radius:10px;box-shadow:var(--shadow)}
+    .search input{border:0;outline:0;font-size:14px;font-family:Inter;background:transparent;color:var(--text)}
+    .user{display:flex;align-items:center;gap:12px}
+    .avatar{width:40px;height:40px;border-radius:999px;background:linear-gradient(45deg,var(--accent),var(--primary));color:white;display:grid;place-items:center;font-weight:600}
+
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:18px}
+    .col-3{grid-column:span 3}
+    .col-8{grid-column:span 8}
+    .col-4{grid-column:span 4}
+
+    .card{background:var(--panel);border-radius:12px;padding:16px;box-shadow:var(--card-shadow);border:1px solid color-mix(in srgb, var(--text) 7%, transparent);transition:background .15s linear}
+    .stat{display:flex;align-items:center;justify-content:space-between}
+    .stat .meta{display:flex;flex-direction:column}
+    .stat .value{font-family:Poppins;font-size:20px;font-weight:600;background:linear-gradient(135deg, var(--primary), var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .stat .label{font-size:13px;color:var(--muted)}
+
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    thead th{ text-align:left;padding:12px 10px;color:var(--muted);font-size:12px;font-weight:600;letter-spacing:0.02em}
+    tbody td{padding:12px 10px;background:transparent;border-bottom:1px solid color-mix(in srgb, var(--text) 8%, transparent)}
+    tbody tr:hover td{background:var(--glass)}
+
+    .board{display:flex;gap:12px;align-items:start}
+    .column{background:var(--surface-2);padding:12px;border-radius:10px;min-width:220px}
+    .card-sm{background:var(--panel);padding:10px;border-radius:8px;margin-bottom:10px;box-shadow:var(--shadow)}
+
+    .btn{display:inline-flex;gap:8px;align-items:center;padding:8px 12px;border-radius:10px;background:linear-gradient(135deg, var(--primary), var(--accent));color:white;border:0;font-weight:600;font-family:Poppins;transition:transform .15s}
+    .btn:hover{transform:translateY(-2px)}
+    .btn.ghost{background:transparent;color:var(--primary);box-shadow:none;border:1px solid rgba(99,102,241,0.08)}
+
+    .controls{display:flex;gap:8px;align-items:center}
+    .control-group{display:flex;flex-wrap:wrap;gap:8px;background:var(--panel);padding:8px;border-radius:10px;box-shadow:var(--shadow)}
+    .control-btn{background:transparent;color:var(--text);border:1px solid color-mix(in srgb, var(--text) 14%, transparent);padding:8px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:500;transition:all .15s}
+    .control-btn:hover{border-color:var(--primary);color:var(--primary)}
+    .control-btn.active{background:var(--primary);color:white;border-color:var(--primary)}
+
+    @media (max-width:980px){.app{grid-template-columns:1fr;padding:18px}.sidebar{position:relative;height:auto}.grid{grid-template-columns:repeat(6,1fr)}.col-3{grid-column:span 3}.col-8{grid-column:span 6}.col-4{grid-column:span 6}}
+
+    h2{font-family:Poppins;margin:0;font-weight:600}
+    h3{font-family:Poppins;margin:0;font-weight:500;color:var(--text)}
+    .muted{color:var(--muted)}
+
+  </style>
+</head>
+<body>
+  <div id="root" class="app">
+    <aside class="sidebar" aria-label="Sidebar">
+      <div class="brand">
+        <div class="logo">MS</div>
+        <div>
+          <h1>MyShop</h1>
+          <p class="muted" style="font-size:12px;margin-top:4px">Admin Dashboard</p>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="Main Navigation">
+        <a class="active" href="#">Dashboard</a>
+        <a href="#">Inventory</a>
+        <a href="#">Orders</a>
+        <a href="#">Customers</a>
+        <a href="#">Reports</a>
+        <a href="#">Settings</a>
+      </nav>
+
+      <div style="margin-top:auto;font-size:13px;color:var(--muted);">
+        <div>Version <strong>1.0.0</strong></div>
+        <div style="margin-top:8px">Need help? <a href="#" style="color:var(--primary)">Contact</a></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div style="display:flex;gap:12px;width:100%">
+          <div class="search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden style="opacity:0.6"><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <input placeholder="Search products, orders, customers..." aria-label="Search" />
+          </div>
+          <div class="controls">
+            <button class="btn ghost">New</button>
+            <div class="user">
+              <div style="text-align:right;margin-right:6px">
+                <div style="font-size:13px;font-weight:600">Manager One</div>
+                <div style="font-size:12px;color:var(--muted)">manager1@shop.com</div>
+              </div>
+              <div class="avatar">M</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Theme & Color Selector -->
+      <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:18px">
+        <div class="control-group">
+          <button class="control-btn" data-theme="light" title="Light Mode">☀️ Light</button>
+          <button class="control-btn" data-theme="dark" title="Dark Mode">🌙 Dark</button>
+        </div>
+        <div class="control-group">
+          <button class="control-btn" data-scheme="modern" title="Modern Gradient">Modern</button>
+          <button class="control-btn" data-scheme="vibrant" title="Vibrant Energy">Vibrant</button>
+          <button class="control-btn" data-scheme="luxury" title="Luxury Dark">Luxury</button>
+          <button class="control-btn" data-scheme="tech" title="Tech Bold">Tech</button>
+          <button class="control-btn" data-scheme="emerald" title="Emerald">Emerald</button>
+          <button class="control-btn" data-scheme="rose" title="Rose">Rose</button>
+          <button class="control-btn" data-scheme="amber" title="Amber Sunset">Amber</button>
+          <button class="control-btn" data-scheme="ocean" title="Ocean">Ocean</button>
+          <button class="control-btn" data-scheme="grape" title="Grape Royale">Grape</button>
+          <button class="control-btn" data-scheme="slate" title="Slate">Slate</button>
+          <button class="control-btn" data-scheme="indigo" title="Indigo">Indigo</button>
+          <button class="control-btn" data-scheme="crimson" title="Crimson + Gold">Crimson</button>
+          <button class="control-btn" data-scheme="forest" title="Forest + Lime">Forest</button>
+          <button class="control-btn" data-scheme="cyan" title="Cyan">Cyan</button>
+          <button class="control-btn" data-scheme="mocha" title="Mocha Coffee">Mocha</button>
+          <button class="control-btn" data-scheme="plum" title="Plum + Magenta">Plum</button>
+        </div>
+      </div>
+
+      <section class="grid">
+        <div class="col-3 card">
+          <div class="stat">
+            <div class="meta">
+              <div class="label muted">Shipped Today</div>
+              <div class="value">128</div>
+            </div>
+            <div style="background:linear-gradient(135deg,var(--accent),var(--primary));padding:10px;border-radius:8px;color:white;font-weight:600">▲ 8%</div>
+          </div>
+        </div>
+
+        <div class="col-3 card">
+          <div class="stat">
+            <div class="meta">
+              <div class="label muted">Orders to Fulfill</div>
+              <div class="value">42</div>
+            </div>
+            <div style="background:rgba(16,185,129,0.12);padding:10px;border-radius:8px;color:var(--success);font-weight:600">42</div>
+          </div>
+        </div>
+
+        <div class="col-3 card">
+          <div class="stat">
+            <div class="meta">
+              <div class="label muted">Out of Stock</div>
+              <div class="value">5</div>
+            </div>
+            <div style="background:rgba(239,68,68,0.08);padding:10px;border-radius:8px;color:var(--danger);font-weight:600">5</div>
+          </div>
+        </div>
+
+        <div class="col-3 card">
+          <div class="stat">
+            <div class="meta">
+              <div class="label muted">Revenue (7d)</div>
+              <div class="value">$24,320</div>
+            </div>
+            <div style="background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(6,182,212,0.12));padding:10px;border-radius:8px;color:var(--primary);font-weight:600">+12%</div>
+          </div>
+        </div>
+
+        <div class="col-8 card" style="margin-top:6px;">
+          <h2 style="margin-bottom:10px">Inventory</h2>
+          <p class="lead" style="margin-bottom:14px">Overview of products and stock levels</p>
+
+          <div style="overflow:auto;border-radius:8px">
+            <table>
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>SKU</th>
+                  <th>Stock</th>
+                  <th>Price</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="font-weight:600">Lace Sneakers</td>
+                  <td>LS-001</td>
+                  <td>12</td>
+                  <td>$89</td>
+                  <td style="text-align:right"><button class="btn ghost">Actions</button></td>
+                </tr>
+                <tr>
+                  <td>Classic Tee</td>
+                  <td>CT-044</td>
+                  <td>3</td>
+                  <td>$19</td>
+                  <td style="text-align:right"><button class="btn ghost">Actions</button></td>
+                </tr>
+                <tr>
+                  <td>Denim Jacket</td>
+                  <td>DJ-011</td>
+                  <td>0</td>
+                  <td>$129</td>
+                  <td style="text-align:right"><button class="btn ghost">Actions</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="col-4 card" style="margin-top:6px;">
+          <h2 style="margin-bottom:10px">Fulfillment Board</h2>
+          <p class="lead" style="margin-bottom:12px">Orders by pipeline stage</p>
+          <div class="board">
+            <div class="column">
+              <h3 style="font-size:13px;margin-bottom:8px">To Confirm</h3>
+              <div class="card-sm">
+                <div style="font-weight:600">ORD-1024</div>
+                <div class="muted" style="font-size:13px">3 items • John D.</div>
+              </div>
+              <div class="card-sm">
+                <div style="font-weight:600">ORD-1019</div>
+                <div class="muted" style="font-size:13px">1 item • Alice B.</div>
+              </div>
+            </div>
+
+            <div class="column">
+              <h3 style="font-size:13px;margin-bottom:8px">To Pack</h3>
+              <div class="card-sm">
+                <div style="font-weight:600">ORD-1007</div>
+                <div class="muted" style="font-size:13px">2 items • Marco P.</div>
+              </div>
+            </div>
+
+            <div class="column">
+              <h3 style="font-size:13px;margin-bottom:8px">To Ship</h3>
+              <div class="card-sm">
+                <div style="font-weight:600">ORD-0992</div>
+                <div class="muted" style="font-size:13px">4 items • Zoe K.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    (function(){
+      const root = document.documentElement;
+      
+      // Initialize theme and scheme from localStorage
+      const savedTheme = localStorage.getItem('site-theme') || 'light';
+      const savedScheme = localStorage.getItem('site-scheme') || 'modern';
+      
+      root.setAttribute('data-theme', savedTheme);
+      root.setAttribute('data-scheme', savedScheme);
+      updateControls();
+
+      // Theme buttons
+      document.querySelectorAll('[data-theme]').forEach(btn => {
+        btn.addEventListener('click', ()=>{
+          const theme = btn.getAttribute('data-theme');
+          root.setAttribute('data-theme', theme);
+          localStorage.setItem('site-theme', theme);
+          updateControls();
+        });
+      });
+
+      // Scheme buttons
+      document.querySelectorAll('[data-scheme]').forEach(btn => {
+        btn.addEventListener('click', ()=>{
+          const scheme = btn.getAttribute('data-scheme');
+          root.setAttribute('data-scheme', scheme);
+          localStorage.setItem('site-scheme', scheme);
+          updateControls();
+        });
+      });
+
+      function updateControls(){
+        const theme = root.getAttribute('data-theme');
+        const scheme = root.getAttribute('data-scheme');
+        
+        document.querySelectorAll('[data-theme]').forEach(btn => {
+          btn.classList.toggle('active', btn.getAttribute('data-theme') === theme);
+        });
+        
+        document.querySelectorAll('[data-scheme]').forEach(btn => {
+          btn.classList.toggle('active', btn.getAttribute('data-scheme') === scheme);
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

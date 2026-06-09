@@ -1,14 +1,13 @@
 import type { MetadataRoute } from "next";
+import prisma from "@/server/db";
 
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  // TODO: replace stubs with real DB queries once Prisma models exist
-  // const products = await prisma.product.findMany({ select: { slug: true, updatedAt: true } });
-  // const categories = await prisma.category.findMany({ select: { slug: true, updatedAt: true } });
-  const products: { slug: string; updatedAt: Date }[] = [];
-  const categories: { slug: string; updatedAt: Date }[] = [];
+// Regenerate at most hourly — fresh enough for new products without hammering
+// the DB on every crawler hit.
+export const revalidate = 3600;
 
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: siteUrl,
@@ -28,7 +27,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.8,
     },
+    // Static info / legal pages.
+    ...["/contact", "/shipping", "/returns", "/privacy", "/terms"].map(
+      (path) => ({
+        url: `${siteUrl}${path}`,
+        lastModified: new Date(),
+        changeFrequency: "yearly" as const,
+        priority: 0.3,
+      })
+    ),
   ];
+
+  // DB-driven entries. Guarded so a DB outage degrades to the static routes
+  // rather than returning a 500 for the whole sitemap.
+  let products: { slug: string; updatedAt: Date }[] = [];
+  let categories: { slug: string; updatedAt: Date }[] = [];
+  try {
+    [products, categories] = await Promise.all([
+      prisma.product.findMany({
+        where: { isActive: true },
+        select: { slug: true, updatedAt: true },
+      }),
+      prisma.category.findMany({
+        where: { isActive: true },
+        select: { slug: true, updatedAt: true },
+      }),
+    ]);
+  } catch {
+    // Swallow — return whatever we have (static routes at minimum).
+  }
 
   const productRoutes: MetadataRoute.Sitemap = products.map((p) => ({
     url: `${siteUrl}/products/${p.slug}`,
@@ -37,8 +64,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
+  // Categories are browsed via /shop?category=<slug> (there is no /category/* route).
   const categoryRoutes: MetadataRoute.Sitemap = categories.map((c) => ({
-    url: `${siteUrl}/category/${c.slug}`,
+    url: `${siteUrl}/shop?category=${c.slug}`,
     lastModified: c.updatedAt,
     changeFrequency: "weekly",
     priority: 0.6,

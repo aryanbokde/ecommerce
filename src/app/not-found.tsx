@@ -16,7 +16,7 @@ export default function NotFound() {
           </p>
         </CardContent>
         <CardFooter className="justify-center">
-          <Button render={<Link href="/" />}>Back to home</Button>
+          <Button nativeButton={false} render={<Link href="/" />}>Back to home</Button>
         </CardFooter>
       </Card>
     </div>

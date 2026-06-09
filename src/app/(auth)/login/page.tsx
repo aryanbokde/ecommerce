@@ -1,29 +1,49 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { AuthShell } from "../_components/auth-shell";
+import { LoginForm } from "./login-form";
+
+export const metadata: Metadata = {
+  title: "Sign In",
+};
+
+const FD = "var(--font-display,'system-ui',sans-serif)";
+
 export default function LoginPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center">
-      <form className="flex w-full max-w-sm flex-col gap-4 p-8">
-        <h1 className="text-2xl font-semibold">Sign in</h1>
+    <AuthShell>
+      {/* Heading */}
+      <div style={{ animation: "auth-fade 0.9s 0.2s both" }}>
+        <h1
+          style={{
+            fontFamily: FD,
+            fontSize: "2.4rem",
+            lineHeight: 1.05,
+            fontWeight: 700,
+            letterSpacing: "-0.02em",
+            color: "var(--text)",
+          }}
+        >
+          Welcome back
+        </h1>
+        <p className="mt-2 text-sm" style={{ color: "var(--muted)", fontWeight: 300 }}>
+          Sign in to continue to your marketplace.
+        </p>
+      </div>
 
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          required
-          className="rounded border px-3 py-2"
-        />
+      {/* Form (client component — calls authClient.signIn.email) */}
+      <LoginForm />
 
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          required
-          className="rounded border px-3 py-2"
-        />
-
-        <button type="submit" className="rounded bg-black px-4 py-2 text-white">
-          Sign in
-        </button>
-      </form>
-    </main>
+      {/* Footer */}
+      <p
+        className="mt-7 text-xs text-center"
+        style={{ color: "var(--muted)", fontWeight: 300, animation: "auth-fade 0.9s 0.78s both" }}
+      >
+        New to Bazaar?{" "}
+        <Link href="/register" className="lnk" style={{ fontWeight: 400 }}>
+          Create an account
+        </Link>
+      </p>
+    </AuthShell>
   );
 }

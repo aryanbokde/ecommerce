@@ -3,10 +3,36 @@
 import React, { useState, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { formatDistanceToNow, format } from "date-fns";
-import { CheckCircle2, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Circle,
+  Loader2,
+  MoreHorizontal,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ADMIN_BADGES_REFRESH } from "@/components/admin/AdminSidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -47,6 +73,7 @@ export interface ErrorLogEntry {
   ipAddress: string | null;
   metadata: unknown;
   resolved: boolean;
+  seenByAdmin: boolean;
   createdAt: Date | string;
 }
 
@@ -86,13 +113,92 @@ export default function ErrorLogsClient({ logsResult }: Props) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [locallySeen, setLocallySeen] = useState<Set<string>>(new Set());
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkResolving, setBulkResolving] = useState(false);
   const [, startTransition] = useTransition();
 
   const currentLevel = searchParams.get("level") ?? "all";
   const currentResolved = searchParams.get("resolved") ?? "all";
+  const currentLimit = searchParams.get("limit") ?? "20";
   const currentPage = logsResult.page;
   const totalPages = logsResult.totalPages;
+  const PER_PAGE_OPTIONS = [10, 20, 50, 100] as const;
+
+  const pageIds = logsResult.items.map((l) => l.id);
+  const allSelected =
+    pageIds.length > 0 && pageIds.every((id) => selected.has(id));
+  const someSelected = pageIds.some((id) => selected.has(id));
+  const bulkBusy = bulkDeleting || bulkResolving;
+
+  function toggleAll() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allSelected) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+  }
+
+  function toggleRow(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  // Bulk delete the selected ids (opens via the confirm dialog).
+  async function handleBulkDelete() {
+    setBulkDeleting(true);
+    try {
+      const res = await fetch("/api/admin/error-logs", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [...selected] }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      const json = await res.json().catch(() => null);
+      toast.success(`Deleted ${json?.deleted ?? selected.size} error logs`);
+      setSelected(new Set());
+      setConfirmOpen(false);
+      window.dispatchEvent(new Event(ADMIN_BADGES_REFRESH));
+      router.refresh();
+    } catch {
+      toast.error("Failed to delete error logs");
+    } finally {
+      setBulkDeleting(false);
+    }
+  }
+
+  // Bulk update resolved state for the selected ids.
+  async function handleBulkResolve(resolved: boolean) {
+    setBulkResolving(true);
+    try {
+      const res = await fetch("/api/admin/error-logs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [...selected], resolved }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      const json = await res.json().catch(() => null);
+      const n = json?.updated ?? selected.size;
+      toast.success(
+        `Marked ${n} log${n === 1 ? "" : "s"} ${resolved ? "resolved" : "open"}`
+      );
+      setSelected(new Set());
+      window.dispatchEvent(new Event(ADMIN_BADGES_REFRESH));
+      router.refresh();
+    } catch {
+      toast.error("Failed to update error logs");
+    } finally {
+      setBulkResolving(false);
+    }
+  }
 
   function buildHref(overrides: Record<string, string>) {
     const params = new URLSearchParams(searchParams.toString());
@@ -112,6 +218,26 @@ export default function ErrorLogsClient({ logsResult }: Props) {
     startTransition(() => router.push(href));
   }
 
+  // Expanding a log to read it counts as "seeing" it → clears it from the
+  // sidebar's new-errors badge. Local set hides the "New" pill instantly.
+  function markSeen(log: ErrorLogEntry) {
+    if (log.seenByAdmin || locallySeen.has(log.id)) return;
+    setLocallySeen((prev) => new Set(prev).add(log.id));
+    void fetch(`/api/admin/error-logs/${log.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seen: true }),
+    }).then((res) => {
+      if (res.ok) window.dispatchEvent(new Event(ADMIN_BADGES_REFRESH));
+    });
+  }
+
+  function toggleExpand(log: ErrorLogEntry) {
+    const opening = expandedId !== log.id;
+    setExpandedId(opening ? log.id : null);
+    if (opening) markSeen(log);
+  }
+
   async function handleResolve(e: React.MouseEvent, id: string) {
     e.stopPropagation();
     setPendingId(id);
@@ -121,6 +247,7 @@ export default function ErrorLogsClient({ logsResult }: Props) {
       });
       if (!res.ok) throw new Error("Failed to resolve");
       toast.success("Error log marked as resolved");
+      window.dispatchEvent(new Event(ADMIN_BADGES_REFRESH));
       router.refresh();
     } catch {
       toast.error("Failed to resolve error log");
@@ -138,6 +265,7 @@ export default function ErrorLogsClient({ logsResult }: Props) {
       });
       if (!res.ok) throw new Error("Failed to delete");
       toast.success("Error log deleted");
+      window.dispatchEvent(new Event(ADMIN_BADGES_REFRESH));
       router.refresh();
     } catch {
       toast.error("Failed to delete error log");
@@ -205,9 +333,84 @@ export default function ErrorLogsClient({ logsResult }: Props) {
           </Select>
         </div>
 
-        <span className="ml-auto text-sm text-muted-foreground">
-          {logsResult.total} total
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Per page:</span>
+          <Select
+            value={currentLimit}
+            onValueChange={(v) => handleFilterChange("limit", v)}
+          >
+            <SelectTrigger className="w-24">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PER_PAGE_OPTIONS.map((n) => (
+                <SelectItem key={n} value={String(n)}>
+                  {n}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="ml-auto flex items-center gap-3">
+          {selected.size > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button size="sm" variant="outline" disabled={bulkBusy} />
+                }
+              >
+                {bulkBusy ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <MoreHorizontal className="size-4" />
+                )}
+                Bulk actions ({selected.size})
+                <ChevronDown className="size-3.5 opacity-60" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem
+                  onClick={() => handleBulkResolve(true)}
+                  disabled={bulkBusy}
+                >
+                  <CheckCircle2 className="size-4 text-green-600" />
+                  Mark as resolved
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleBulkResolve(false)}
+                  disabled={bulkBusy}
+                >
+                  <Circle className="size-4 text-muted-foreground" />
+                  Mark as open
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => setConfirmOpen(true)}
+                  disabled={bulkBusy}
+                >
+                  <Trash2 className="size-4" />
+                  Delete selected
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          {selected.size > 0 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelected(new Set())}
+              disabled={bulkBusy}
+            >
+              Clear
+            </Button>
+          )}
+          <span className="text-sm text-muted-foreground">
+            {selected.size > 0
+              ? `${selected.size} selected`
+              : `${logsResult.total} total`}
+          </span>
+        </div>
       </div>
 
       {/* Table */}
@@ -215,6 +418,15 @@ export default function ErrorLogsClient({ logsResult }: Props) {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-8">
+                <Checkbox
+                  aria-label="Select all on page"
+                  checked={allSelected}
+                  indeterminate={someSelected && !allSelected}
+                  onCheckedChange={toggleAll}
+                  disabled={pageIds.length === 0}
+                />
+              </TableHead>
               <TableHead className="w-6" />
               <TableHead className="w-20">Level</TableHead>
               <TableHead>Message</TableHead>
@@ -229,7 +441,7 @@ export default function ErrorLogsClient({ logsResult }: Props) {
             {logsResult.items.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={9}
                   className="py-16 text-center"
                 >
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
@@ -245,11 +457,25 @@ export default function ErrorLogsClient({ logsResult }: Props) {
               logsResult.items.map((log) => (
                 <React.Fragment key={log.id}>
                   <TableRow
-                    className="cursor-pointer select-none"
-                    onClick={() =>
-                      setExpandedId(expandedId === log.id ? null : log.id)
-                    }
+                    className={`cursor-pointer select-none ${
+                      !log.seenByAdmin && !locallySeen.has(log.id)
+                        ? "bg-primary/[0.07] font-medium [&>td:first-child]:border-l-4 [&>td:first-child]:border-l-primary"
+                        : ""
+                    }`}
+                    data-selected={selected.has(log.id) || undefined}
+                    onClick={() => toggleExpand(log)}
                   >
+                    <TableCell
+                      className="pr-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Checkbox
+                        aria-label="Select log"
+                        checked={selected.has(log.id)}
+                        onCheckedChange={() => toggleRow(log.id)}
+                      />
+                    </TableCell>
+
                     <TableCell className="pr-0">
                       {expandedId === log.id ? (
                         <ChevronDown className="size-3.5 text-muted-foreground" />
@@ -259,7 +485,14 @@ export default function ErrorLogsClient({ logsResult }: Props) {
                     </TableCell>
 
                     <TableCell>
-                      <LevelBadge level={log.level} />
+                      <div className="flex items-center gap-1.5">
+                        <LevelBadge level={log.level} />
+                        {!log.seenByAdmin && !locallySeen.has(log.id) && (
+                          <span className="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                            New
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
 
                     <TableCell className="max-w-xs">
@@ -350,7 +583,7 @@ export default function ErrorLogsClient({ logsResult }: Props) {
                   {expandedId === log.id && (
                     <TableRow>
                       <TableCell
-                        colSpan={8}
+                        colSpan={9}
                         className="bg-muted/40 py-4"
                       >
                         <div className="space-y-3 px-2">
@@ -450,6 +683,35 @@ export default function ErrorLogsClient({ logsResult }: Props) {
           </PaginationContent>
         </Pagination>
       )}
+
+      {/* Bulk delete confirmation */}
+      <Dialog
+        open={confirmOpen}
+        onOpenChange={(open) => !bulkDeleting && setConfirmOpen(open)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete {selected.size} error logs?</DialogTitle>
+            <DialogDescription>
+              This permanently removes the selected log entries. This can&apos;t
+              be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>
+              Cancel
+            </DialogClose>
+            <Button
+              variant="destructive"
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+            >
+              {bulkDeleting && <Loader2 className="size-4 animate-spin" />}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

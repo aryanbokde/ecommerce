@@ -13,6 +13,9 @@ test.describe("Home page smoke", () => {
 
   test("renders a <nav> landmark", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("nav").first()).toBeVisible();
+    // The header's CategoryNav fetches /api/categories client-side; that route
+    // cold-compiles on first hit (webpack cache is disabled in next.config.ts),
+    // so give the <nav> generous time to appear.
+    await expect(page.locator("nav").first()).toBeVisible({ timeout: 30_000 });
   });
 });

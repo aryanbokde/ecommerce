@@ -1,11 +1,3 @@
-import { PrismaClient } from "@/generated/prisma";
-
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
-
-const db = globalForPrisma.prisma ?? new PrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = db;
-}
-
-export default db;
+// Re-export the single Prisma client instance from @/server/db so legacy
+// `@/lib/db` imports keep working. One client for the whole app (no second pool).
+export { default } from "@/server/db";

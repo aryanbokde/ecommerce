@@ -8,7 +8,15 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin/", "/shop-manager/", "/support/", "/api/"],
+        // /dashboard is the real admin area (the (admin) route group); /admin/*
+        // is kept for convention/parity with the access-control config.
+        disallow: [
+          "/admin/*",
+          "/dashboard/*",
+          "/shop-manager/*",
+          "/support/*",
+          "/api/*",
+        ],
       },
     ],
     sitemap: `${siteUrl}/sitemap.xml`,

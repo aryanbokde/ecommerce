@@ -1,9 +1,16 @@
 // Prisma schema — single-vendor ecommerce app
 // Docs: https://pris.ly/d/prisma-schema
+//
+// Auth & identity models: User, Session, Account, Verification, TwoFactor,
+// PasswordReset, AuditLog. After changes run `npx prisma generate` then
+// `npx prisma db push` (needs the MySQL DB running) to sync the tables.
 
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
+  // "native" for local dev; the musl target is for the node:20-alpine Docker
+  // runner so the query engine binary works inside the container.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -11,11 +18,356 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id               String    @id @default(cuid())
+  name             String
+  email            String    @unique
+  emailVerified    Boolean   @default(false)
+  image            String?   @db.Text
+  phone            String?   @db.VarChar(20)
+  role             String    @default("customer")
+  twoFactorEnabled Boolean   @default(false)
+  isActive         Boolean   @default(true)
+  // better-auth `admin` plugin ban fields (it writes `banned`/`banReason`/
+  // `banExpires` on user create + ban/unban). Names/types must match the plugin.
+  banned           Boolean?  @default(false)
+  banReason        String?   @db.Text
+  banExpires       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Auth relations.
+  sessions       Session[]
+  accounts       Account[]
+  twoFactor      TwoFactor?
+  passwordResets PasswordReset[]
+  auditLogs      AuditLog[]
+
+  // Ecommerce relations.
+  addresses Address[]
+  cart      Cart?
+  orders    Order[]
+  reviews   Review[]
+  returns   Return[]
+
+  stockMovements StockMovement[]
+  supportNotes   SupportNote[]
+
+  @@index([email])
+  @@index([role])
+  @@index([isActive])
+  @@map("users")
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  token      String   @unique @db.VarChar(512)
+  ipAddress  String?
+  userAgent  String?  @db.Text
+  deviceType String?
+  isActive   Boolean  @default(true)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@index([isActive])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  provider              String
+  providerAccountId     String
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?   @db.Text
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  // NOT @unique — better-auth manages its own tokens and re-creates verification
+  // rows; a unique on `value` makes repeat requests fail with P2002. Indexed
+  // below for lookup instead.
+  value      String
+  // better-auth never sets `type` (not part of its verification schema), so it
+  // must be optional — otherwise every token insert (email verify, password
+  // reset) fails with "Argument `type` is missing". `updatedAt` is written by
+  // better-auth on create/update.
+  type       String?
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@index([identifier])
+  @@index([value])
+  @@index([expiresAt])
+  @@map("verifications")
+}
+
+model TwoFactor {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  // TODO: encrypt `secret` and `backupCodes` at rest with a field-level
+  // encryption key (AES-256) before storing — never persist them in plaintext.
+  secret      String
+  backupCodes String   @db.Text
+  isEnabled   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("two_factors")
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("password_resets")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  ipAddress String?
+  userAgent String?  @db.Text
+  metadata  Json?
+  status    String   @default("success")
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([status])
+  @@map("audit_logs")
+}
+
+// ── Ecommerce models ──────────────────────────────────────────────────────────
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?  @db.Text
+  image       String?
+  parentId    String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parent   Category?  @relation("SubCategories", fields: [parentId], references: [id])
+  children Category[] @relation("SubCategories")
+  products Product[]
+
+  @@index([slug])
+  @@index([parentId])
+  @@map("categories")
+}
+
+model Product {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  description  String?  @db.LongText
+  price        Decimal  @db.Decimal(10, 2)
+  comparePrice Decimal? @db.Decimal(10, 2)
+  costPrice    Decimal? @db.Decimal(10, 2)
+  sku          String?  @unique
+  barcode      String?
+  stock        Int      @default(0)
+  lowStockAt   Int      @default(5)
+  weight       Decimal? @db.Decimal(8, 2)
+  categoryId   String?
+  images       Json?
+  tags         Json?
+  isActive     Boolean  @default(true)
+  isFeatured   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  category       Category?       @relation(fields: [categoryId], references: [id])
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
+  reviews        Review[]
+  stockMovements StockMovement[]
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([isFeatured])
+  @@map("products")
+}
+
+model Address {
+  id         String   @id @default(cuid())
+  userId     String
+  label      String   @default("Home")
+  fullName   String
+  phone      String
+  line1      String
+  line2      String?
+  city       String
+  state      String
+  postalCode String
+  country    String   @default("IN")
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+model Cart {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@index([cartId])
+  @@map("cart_items")
+}
+
+model Order {
+  id             String   @id @default(cuid())
+  orderNumber    String   @unique
+  userId         String
+  addressId      String?
+  status         String   @default("pending")
+  paymentStatus  String   @default("unpaid")
+  paymentMethod  String?
+  paymentId      String?  // gateway payment id (Razorpay pay_xxx) — for reconciliation
+  razorpayOrderId String? // gateway order id (Razorpay order_xxx)
+  razorpaySignature String? @db.Text // signature returned at verification (audit)
+  refundId       String?  // gateway refund id (Razorpay rfnd_xxx) — recorded when an admin marks a cancelled order refunded
+  subtotal       Decimal  @db.Decimal(10, 2)
+  tax            Decimal  @default(0) @db.Decimal(10, 2)
+  shipping       Decimal  @default(0) @db.Decimal(10, 2)
+  discount       Decimal  @default(0) @db.Decimal(10, 2)
+  total          Decimal  @db.Decimal(10, 2)
+  notes          String?  @db.Text
+  trackingNumber String?
+  deliveredAt    DateTime? // set when status → delivered; drives the return window
+  // false until an admin opens the order detail — drives the "new orders"
+  // sidebar badge (count of unseen) and the "New" pill on the orders list.
+  seenByAdmin    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id])
+  address      Address?      @relation(fields: [addressId], references: [id])
+  items        OrderItem[]
+  supportNotes SupportNote[]
+  returnRequest Return?
+
+  @@index([userId])
+  @@index([status])
+  @@index([orderNumber])
+  @@index([paymentStatus])
+  @@index([seenByAdmin])
+  @@map("orders")
+}
+
+// Customer return/RMA request on a DELIVERED order. One per order. Admin
+// approves (optionally restocking + flagging the order for refund) or rejects.
+model Return {
+  id         String   @id @default(cuid())
+  orderId    String   @unique
+  userId     String
+  reason     String   @db.Text
+  status     String   @default("requested") // requested | approved | rejected | completed
+  adminNote  String?  @db.Text
+  restocked  Boolean  @default(false)
+  seenByAdmin Boolean @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  resolvedAt DateTime?
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([seenByAdmin])
+  @@map("returns")
+}
+
+// Internal support-agent notes on an order (not visible to the customer).
+model SupportNote {
+  id        String   @id @default(cuid())
+  orderId   String
+  userId    String
+  note      String   @db.Text
+  createdAt DateTime @default(now())
+
+  order  Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  author User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("support_notes")
+}
+
+// Persisted application error logs (surfaced in the admin error-logs page).
 model ErrorLog {
   id         String   @id @default(cuid())
   level      String   @default("error")
   message    String   @db.Text
-  stack      String?  @db.LongText
+  stack      String?  @db.Text
   code       String?
   statusCode Int?
   userId     String?
@@ -25,11 +377,127 @@ model ErrorLog {
   ipAddress  String?
   metadata   Json?
   resolved   Boolean  @default(false)
+  // false until an admin opens/expands the log — drives the "new errors"
+  // sidebar badge (count of unseen) and the "New" pill on the error-logs list.
+  seenByAdmin Boolean @default(false)
   createdAt  DateTime @default(now())
 
   @@index([level])
-  @@index([createdAt])
   @@index([resolved])
-  @@index([userId])
+  @@index([seenByAdmin])
+  @@index([createdAt])
   @@map("error_logs")
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  name      String
+  price     Decimal @db.Decimal(10, 2)
+  quantity  Int
+  total     Decimal @db.Decimal(10, 2)
+  image     String?
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  rating    Int
+  title     String?
+  body      String?  @db.Text
+  isVisible Boolean  @default(true)
+  // false until an admin views/handles it — drives the "new reviews" sidebar
+  // badge (count of unseen) and the "New" pill on the moderation list.
+  seenByAdmin Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([productId])
+  @@index([rating])
+  @@index([seenByAdmin])
+  @@map("reviews")
+}
+
+// Append-only ledger of every stock change. `type` is one of restock(+),
+// sale(-), return(+), damage(-), correction(±); `quantity` stores the signed
+// delta, and stockBefore/stockAfter snapshot the on-hand level around it.
+// `reference` links to an order / purchase-order number.
+model StockMovement {
+  id          String   @id @default(cuid())
+  productId   String
+  userId      String?
+  type        String
+  quantity    Int
+  stockBefore Int
+  stockAfter  Int
+  reason      String?  @db.Text
+  reference   String?
+  createdAt   DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([productId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("stock_movements")
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+// Admin-editable store configuration (key/value) and email-template overrides.
+
+model StoreSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  group     String   @default("general")
+  updatedAt DateTime @updatedAt
+
+  @@index([group])
+  @@map("store_settings")
+}
+
+model EmailTemplate {
+  id         String   @id @default(cuid())
+  key        String   @unique
+  category   String
+  name       String
+  subject    String
+  heading    String?
+  introText  String?  @db.Text
+  ctaLabel   String?
+  footerNote String?  @db.Text
+  enabled    Boolean  @default(true)
+  updatedAt  DateTime @updatedAt
+
+  @@index([category])
+  @@index([enabled])
+  @@map("email_templates")
+}
+
+model EmailLog {
+  id          String   @id @default(cuid())
+  templateKey String
+  recipient   String
+  subject     String   @db.Text
+  status      String   @default("sent") // sent | skipped | failed
+  error       String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([templateKey])
+  @@index([status])
+  @@index([createdAt])
+  @@map("email_logs")
 }

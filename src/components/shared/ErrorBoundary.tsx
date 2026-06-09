@@ -27,7 +27,7 @@ function FullPageFallback({ error, resetErrorBoundary }: FallbackProps) {
           <Button onClick={resetErrorBoundary} variant="default">
             Try again
           </Button>
-          <Button variant="outline" render={<Link href="/" />}>
+          <Button variant="outline" nativeButton={false} render={<Link href="/" />}>
             Go home
           </Button>
         </CardFooter>

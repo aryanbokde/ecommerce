@@ -1,10 +1,12 @@
 import "server-only";
 import { type NextRequest, NextResponse } from "next/server";
-import { jwtVerify } from "jose";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.BETTER_AUTH_SECRET ?? "changeme"
-);
+// ── Session guard stub ────────────────────────────────────────────────────────
+// Auth is not implemented yet, so there is no session to read. getSessionPayload
+// always returns null until the real token verification is restored. The HTTP
+// response helpers are kept since they are auth-agnostic.
+//
+// TODO: restore cookie + JWT verification (jose) once auth is back.
 
 type Role = "customer" | "admin" | "shop_manager" | "support";
 
@@ -15,16 +17,10 @@ export interface SessionPayload {
 }
 
 export async function getSessionPayload(
-  request: NextRequest
+  _request: NextRequest
 ): Promise<SessionPayload | null> {
-  const token = request.cookies.get("session_token")?.value;
-  if (!token) return null;
-  try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    return payload as unknown as SessionPayload;
-  } catch {
-    return null;
-  }
+  void _request;
+  return null;
 }
 
 export function unauthorized() {

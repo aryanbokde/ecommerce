@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.gitignore
+logs
+.env*
+coverage
+playwright-report
+test-results
+src/tests
+**/*.test.ts
+**/*.test.tsx
+Dockerfile
+.dockerignore
+docker-compose.yml
+README.md
+npm-debug.log*

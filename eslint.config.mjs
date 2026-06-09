@@ -14,6 +14,11 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Generated Prisma client — never hand-written, linting it is noise
     "src/generated/**",
+    // Generated test artifacts (Playwright HTML report + traces, results).
+    "playwright-report/**",
+    "test-results/**",
+    // Generated coverage report (vitest --coverage).
+    "coverage/**",
   ]),
 ]);
 

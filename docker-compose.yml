@@ -1,0 +1,45 @@
+services:
+  db:
+    image: mysql:8
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ecommerce}
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3306:3306" # exposed for host tools; remove if not needed
+    healthcheck:
+      test:
+        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-rootpass}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  app:
+    build:
+      context: .
+      args:
+        # Public vars are inlined at build time (override for a real domain).
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+        NEXT_PUBLIC_RAZORPAY_KEY_ID: ${NEXT_PUBLIC_RAZORPAY_KEY_ID:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    # Runtime secrets (BETTER_AUTH_SECRET, BETTER_AUTH_URL, RAZORPAY_KEY_ID/SECRET,
+    # NEXT_PUBLIC_*). Copy .env.example → .env and fill these in for the container.
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      # Point the app at the db service (overrides DATABASE_URL from .env).
+      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-rootpass}@db:3306/${MYSQL_DATABASE:-ecommerce}
+      # Seed on first boot (optional — requires the seed toolchain in the image).
+      # SEED: "true"
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+volumes:
+  db_data:

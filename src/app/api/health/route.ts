@@ -1,46 +1,33 @@
-// BEFORE withErrorHandler:
-//
-//   export async function GET() {
-//     const [database] = await Promise.all([checkDatabase()]);
-//     ...
-//     return NextResponse.json(body, { status: allOk ? 200 : 503 });
-//   }
-//
-// AFTER — withErrorHandler catches any unexpected throw, logs it, and returns
-// a structured JSON 500. The handler itself still controls happy-path responses.
-
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@/generated/prisma";
 import packageJson from "../../../../package.json";
 import { withErrorHandler } from "@/lib/with-error-handler";
-
-const prisma = new PrismaClient();
-
-type CheckStatus = "ok" | "error";
-type HealthStatus = "ok" | "degraded";
+import prisma from "@/server/db";
 
 interface HealthResponse {
-  status: HealthStatus;
+  status: "ok" | "degraded" | "error";
   timestamp: string;
   version: string;
   checks: {
-    database: CheckStatus;
+    database: { status: "ok" | "down"; responseTime: number };
     memory: { used: number; total: number };
     uptime: number;
   };
 }
 
-async function checkDatabase(): Promise<CheckStatus> {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    return "ok";
-  } catch {
-    return "error";
-  }
-}
+// A DB ping slower than this still answers, but downgrades status to "degraded".
+const SLOW_DB_MS = 300;
 
 export const GET = withErrorHandler(async () => {
-  const database = await checkDatabase();
+  // DB connectivity ping. A failure is reported in the body (not thrown), so the
+  // health endpoint always responds and the dashboard can render a "down" state.
+  let database: HealthResponse["checks"]["database"];
+  const startedAt = Date.now();
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    database = { status: "ok", responseTime: Date.now() - startedAt };
+  } catch {
+    database = { status: "down", responseTime: Date.now() - startedAt };
+  }
 
   const mem = process.memoryUsage();
   const memory = {
@@ -48,14 +35,20 @@ export const GET = withErrorHandler(async () => {
     total: Math.round(mem.heapTotal / 1024 / 1024),
   };
   const uptime = Math.floor(process.uptime());
-  const allOk = database === "ok";
+
+  const status: HealthResponse["status"] =
+    database.status === "down"
+      ? "error"
+      : database.responseTime > SLOW_DB_MS
+        ? "degraded"
+        : "ok";
 
   const body: HealthResponse = {
-    status: allOk ? "ok" : "degraded",
+    status,
     timestamp: new Date().toISOString(),
     version: packageJson.version,
     checks: { database, memory, uptime },
   };
 
-  return NextResponse.json(body, { status: allOk ? 200 : 503 });
+  return NextResponse.json(body, { status: status === "error" ? 503 : 200 });
 });

@@ -4,11 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @AGENTS.md
 
+## ⚠️ Current State: Database & Auth are STUBBED
+
+There is **no database** wired up yet. The DB, auth, and proxy logic has been
+deliberately removed and replaced with no-op stubs (packages and folder structure
+are kept) — it will be rebuilt later. Until then:
+
+- `src/lib/db.ts` exports `null`; `prisma/schema.prisma` has no models; the
+  generated client (`src/generated/prisma`) is gone (run `npx prisma generate`
+  after adding models to bring it back).
+- `src/lib/auth.ts`, `src/lib/auth-client.ts`, `src/lib/session-guard.ts` are
+  stubs (no better-auth). `getSessionPayload()` always returns `null`.
+- `src/proxy.ts` is a pass-through (no role-based redirects); `/api/auth/*`
+  returns **501**; `src/server/services/error-log.service.ts` returns empty data;
+  `logError()` logs to Winston only (no DB persist).
+
+Each stub carries a `TODO` describing what to restore. The sections below
+describe the **intended** architecture for when DB/auth are reintroduced.
+
 ## Commands
 
 ```bash
 npm run dev          # start dev server (http://localhost:3000)
-npm run build        # production build (also runs next-sitemap via postbuild)
+npm run build        # production build (sitemap served dynamically by src/app/sitemap.ts)
 npm run lint         # ESLint
 npm run test         # vitest run (unit, one-shot)
 npm run test:watch   # vitest watch
@@ -24,6 +42,16 @@ To run a single unit test file:
 ```bash
 npx vitest run src/tests/unit/utils.test.ts
 ```
+
+## Testing cadence
+
+**Do not run tests after every individual step/edit.** Run `npm test` / `npm run
+test:e2e` only when a **phase and its step are complete**, or when explicitly
+asked — then run the whole phase's suite at once. `tsc`/`lint` are cheap and fine
+to run while finishing a unit of work. Repeatedly running e2e hammers auth login
+and trips the **429 "Too many requests"** rate limit, which then fails *unrelated*
+specs (checkout/admin/shop-manager/support) with login errors that look like
+regressions but are just rate-limiting — wait it out, don't treat as a code bug.
 
 ## Stack at a Glance
 
@@ -44,23 +72,26 @@ npx vitest run src/tests/unit/utils.test.ts
 ## Next.js 16 Breaking Changes to Know
 
 - **`params` and `searchParams` are both `Promise<{...}>`** — always `await` them in page and route handler signatures.
-- **`middleware.ts` is deprecated** in favour of `proxy.ts` (still works but should be migrated).
+- **`middleware.ts` is deprecated** in favour of `proxy.ts` — already migrated: this repo uses `src/proxy.ts` which exports a `proxy` function (not `middleware`). Proxy defaults to the Node.js runtime.
 - **`after()`** from `next/server` schedules non-blocking work after a response is sent; it works in Route Handlers (Node.js runtime), not in middleware (Edge Runtime).
 - **`instrumentation.ts`** runs once per process and is the right place for one-time server-side init; read `NEXT_RUNTIME` before importing Node-only modules.
 
 ## Route Group → URL Mapping
 
 ```
-src/app/(admin)/dashboard/...  →  URL /dashboard/...
-src/app/(auth)/...             →  URL /auth/...
-src/app/(public)/...           →  URL /...
+src/app/(admin)/dashboard/...            →  URL /dashboard/...
+src/app/(auth)/login|register|forgot-... →  URL /login, /register, /forgot-password
+src/app/(customer)/orders|profile/...    →  URL /orders, /profile, /checkout
+src/app/(shop-manager)/shop-manager/...  →  URL /shop-manager/dashboard
+src/app/(store)/products|cart|shop/..    →  URL /products, /cart, /shop
+src/app/(support)/support/...            →  URL /support/dashboard
 ```
-The `(group)` segment does **not** appear in the URL.
+The `(group)` segment does **not** appear in the URL. Auth pages live in the `(auth)` group, so they serve **root-level** URLs (`/login`, `/register`, `/forgot-password`); the group's `layout.tsx` provides the Bricolage Grotesque/Jost fonts and the shared `AuthShell`. `next.config.ts` keeps the old `/auth/*` paths working as redirects. Each role dashboard sits under a distinct prefix (`/dashboard`, `/shop-manager/dashboard`, `/support/dashboard`) to avoid a route collision — role gating will live in `proxy.ts`.
 
 ## Authentication & Session
 
 - **better-auth** owns session creation and the cookie. The cookie name is `session_token` (httpOnly, sameSite=lax).
-- **Middleware** (`src/middleware.ts`) reads and JWT-verifies the cookie using `jose`. Role-based redirects happen here.
+- **Proxy** (`src/proxy.ts`, formerly `middleware.ts`) reads and JWT-verifies the cookie using `jose`. Role-based redirects happen here.
 - **Route handlers** use `getSessionPayload(request)` from `src/lib/session-guard.ts` (server-only) for in-handler auth checks. Returns `null` on missing/invalid token.
 - **Known bug**: `auth.ts` passes `provider: "postgresql"` to `prismaAdapter` — should be `"mysql"`. Do not fix silently; it breaks the DB adapter.
 - Four roles: `customer` · `shop_manager` · `support` · `admin`.
@@ -103,7 +134,7 @@ Winston runs in **Node.js runtime only** (has `fs`/`net` dependencies).
 - **Dev**: colorized `printf` format to console.
 - **Prod**: JSON to console.
 - File transports: `logs/error.log` (ERROR only), `logs/combined.log` (all), `logs/app-%DATE%.log` (daily rotation, 14 days, 20 MB max).
-- **Middleware** runs in Edge Runtime — use `console.log(JSON.stringify({...}))` there, never import Winston.
+- **Proxy** (`src/proxy.ts`) logs with `console.log(JSON.stringify({...}))` rather than Winston, to stay portable across runtimes.
 - Calling convention: `logger.info("message", { meta })` — message first, meta second (opposite of pino).
 
 ## Prisma
@@ -131,9 +162,9 @@ Throw `new AppError(message, ErrorCode.X, statusCode)` from any server code. `wi
 
 ```
 DATABASE_URL          # MySQL connection string
-BETTER_AUTH_SECRET    # used by both better-auth and middleware JWT verification
+BETTER_AUTH_SECRET    # used by both better-auth and proxy.ts JWT verification
 NEXT_PUBLIC_APP_URL   # canonical origin (e.g. http://localhost:3000)
 NEXT_PUBLIC_SENTRY_DSN # Sentry project DSN (currently empty)
 ```
 
-`middleware.ts` still has a hardcoded `"changeme"` fallback for `JWT_SECRET` — it should use only `BETTER_AUTH_SECRET`.
+`proxy.ts` still hardcodes `"changeme"` as its `JWT_SECRET` — it should use `BETTER_AUTH_SECRET` instead.

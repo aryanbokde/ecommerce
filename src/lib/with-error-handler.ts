@@ -48,7 +48,14 @@ export function withErrorHandler(
         });
       });
 
-      logError(error, { route, method });
+      // Only real server faults (5xx) and unexpected throws are worth logging +
+      // persisting to error-logs. Expected client errors (401 unauthenticated,
+      // 403 forbidden, 404 not found, 409/422 validation …) are normal traffic —
+      // e.g. a logged-out shopper's cart poll hitting /api/cart → 401 — so they
+      // must not spam the logs or the admin error-log table.
+      if (status >= 500) {
+        logError(error, { route, method, statusCode: status });
+      }
 
       if (isAppError(error)) {
         return NextResponse.json(

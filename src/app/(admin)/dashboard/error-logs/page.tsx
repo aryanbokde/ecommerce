@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AlertCircle, AlertTriangle, Info, ShieldAlert } from "lucide-react";
+import { DashboardShell } from "@/components/admin/DashboardShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   getErrorLogs,
@@ -78,39 +79,36 @@ export default async function ErrorLogsPage({ searchParams }: PageProps) {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold">Error Logs</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Monitor and resolve application errors
-        </p>
-      </div>
+    <DashboardShell
+      title="Error Logs"
+      description="Monitor and resolve application errors"
+    >
+      <div className="space-y-6">
+        {/* Stat cards */}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {statCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <Card key={card.label} size="sm">
+                <CardHeader className="flex-row items-center justify-between gap-2 pb-0">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    {card.label}
+                  </CardTitle>
+                  <Icon className={`size-4 ${card.className}`} />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-semibold tabular-nums">
+                    {card.value.toLocaleString()}
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {statCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <Card key={card.label} size="sm">
-              <CardHeader className="flex-row items-center justify-between gap-2 pb-0">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {card.label}
-                </CardTitle>
-                <Icon className={`size-4 ${card.className}`} />
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold tabular-nums">
-                  {card.value.toLocaleString()}
-                </p>
-              </CardContent>
-            </Card>
-          );
-        })}
+        {/* Interactive table */}
+        <ErrorLogsClient logsResult={logsResult} />
       </div>
-
-      {/* Interactive table */}
-      <ErrorLogsClient logsResult={logsResult} />
-    </div>
+    </DashboardShell>
   );
 }

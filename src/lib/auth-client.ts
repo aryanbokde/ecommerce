@@ -1,22 +1,29 @@
 "use client";
 
 import { createAuthClient } from "better-auth/react";
-import { adminClient } from "better-auth/client/plugins";
+import { twoFactorClient, adminClient } from "better-auth/client/plugins";
 
-// ── Client-side better-auth instance ─────────────────────────────────────────
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  // No explicit baseURL → the client calls /api/auth on the SAME origin the page
+  // was served from. Hardcoding localhost broke sign-in whenever the app was
+  // reached via 127.0.0.1 or any other host (CORS preflight failure on the
+  // cross-origin POST). Same-origin works for localhost, 127.0.0.1, and prod.
   plugins: [
-    adminClient(), // exposes authClient.admin.* role management methods
+    twoFactorClient({
+      // Auth pages live at root URLs (the (auth) route group), so no /auth prefix.
+      onTwoFactorRedirect() {
+        window.location.href = "/two-factor";
+      },
+    }),
+    adminClient(),
   ],
 });
 
-// ── Named exports for ergonomic imports ───────────────────────────────────────
-//
-//  signIn  → object with methods: signIn.email({ email, password })
-//                                  signIn.social({ provider: "google" })
-//  signUp  → object with methods: signUp.email({ email, password, name })
-//  signOut → function: signOut()
-//  useSession → React hook: const { data: session, isPending } = useSession()
-//
-export const { signIn, signOut, signUp, useSession } = authClient;
+export const {
+  signIn,
+  signUp,
+  signOut,
+  useSession,
+  twoFactor,
+  admin: adminActions,
+} = authClient;

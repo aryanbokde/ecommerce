@@ -36,7 +36,9 @@ const jsonFormat = winston.format.combine(baseFormat, winston.format.json());
 const prettyFormat = winston.format.combine(
   baseFormat,
   winston.format.colorize({ all: true }),
-  winston.format.printf(({ timestamp, level, message, service, environment, ...meta }) => {
+  winston.format.printf(({ timestamp, level, message, service, ...meta }) => {
+    // `environment` is recorded in JSON logs but omitted from the pretty dev line.
+    delete meta.environment;
     const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : "";
     return `${timestamp} [${service}] ${level}: ${message}${metaStr}`;
   })
@@ -100,9 +102,11 @@ export function logError(
 
   logger[level](message, { name, stack, ...context });
 
-  // Persist to DB — fire and forget, never let logging break the app
-  if (typeof window === "undefined") {
-    import("@/server/services/error-log.service")
+  // Persist to the DB (fire-and-forget). Guarded + dynamically imported so the
+  // Prisma-backed service never reaches the client bundle, and a persistence
+  // failure never throws back into the caller's flow.
+  if (typeof window === "undefined" && (level === "error" || level === "warn")) {
+    void import("@/server/services/error-log.service")
       .then(({ saveErrorLog }) =>
         saveErrorLog({
           level,
@@ -119,7 +123,7 @@ export function logError(
         })
       )
       .catch(() => {
-        // DB write failure must never surface to callers
+        /* never let error-log persistence break the caller */
       });
   }
 }

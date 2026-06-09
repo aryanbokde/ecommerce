@@ -1,0 +1,143 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   BACKEND THEME — Cyan dashboards (admin · shop-manager · support)
+   ----------------------------------------------------------------------------
+   Split out of the storefront's globals.css. Imported by backend-theme.tsx
+   (BackendThemeProvider), so these rules load only where the dashboards render.
+   Plain CSS — no Tailwind directives; it just re-declares the shadcn token vars
+   on the `.theme-cyan` wrapper, which the utilities read at runtime.
+
+   Pairs with `@custom-variant dark (...)` in globals.css — that stays there
+   because Tailwind must process the variant at build time.
+
+   Matches dashboard-premium.html: light grey canvas · Inter body · Poppins
+   headings · cyan palette.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Light ─────────────────────────────────────────────────────────────────── */
+.theme-cyan {
+  color-scheme: light;
+  --background: #f1f5f9;
+  --foreground: #08222a;
+  --card: #ffffff;
+  --card-foreground: #08222a;
+  --popover: #ffffff;
+  --popover-foreground: #08222a;
+  --primary: #0891b2;
+  --primary-foreground: #ecfeff;
+  --secondary: #e2f4f8;
+  --secondary-foreground: #08222a;
+  --muted: #e2f4f8;
+  --muted-foreground: #4f6b70;
+  --accent: #0ea5e9;
+  --accent-foreground: #ecfeff;
+  --success: #10b981;
+  --destructive: #ef4444;
+  --border: #c6d6dc;
+  --input: #c6d6dc;
+  --ring: #0891b2;
+  --chart-1: #0891b2;
+  --chart-2: #0ea5e9;
+  --chart-3: #22c55e;
+  --chart-4: #818cf8;
+  --chart-5: #a78bfa;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #08222a;
+  --sidebar-primary: #0891b2;
+  --sidebar-primary-foreground: #ecfeff;
+  --sidebar-accent: #d6eff4;
+  --sidebar-accent-foreground: #08222a;
+  --sidebar-border: #cfe7ec;
+  --sidebar-ring: #0891b2;
+  /* Fonts — Inter body, Poppins headings (font-heading var used by the rule
+     below; the Tailwind font-heading utility maps to --font-sans, so headings
+     use an element rule rather than a utility). */
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-heading: var(--font-poppins), var(--font-inter), system-ui, sans-serif;
+  /* Body baseline — Inter 400, line-height 1.45 (template <body>). Inherited,
+     so a component's own weight/size utilities still win on their elements. */
+  font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+/* Headings → Poppins with the template's weights: 600 for h1/h2, 500 for the
+   smaller levels (template h2 = 600 · h3 = 500). Card titles render as a div
+   (data-slot=card-title) whose `font-heading` utility maps to Inter, so target
+   them too. */
+.theme-cyan :is(h1, h2, h3, h4, h5, h6),
+.theme-cyan [data-slot="card-title"] {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  line-height: 1.25;
+}
+.theme-cyan :is(h3, h4, h5, h6) {
+  font-weight: 500;
+}
+
+/* The Tailwind `font-heading` utility maps to --font-sans (Inter) via @theme, so
+   any component using it (or `font-display`) would miss Poppins. Re-point it here
+   so every heading-marked element in the backend gets Poppins, no matter the tag. */
+.theme-cyan :is(.font-heading, .font-display) {
+  font-family: var(--font-heading);
+}
+
+/* All prominent text → Poppins (headings AND figures), matching the template
+   where every large string uses the display face. Catches stat/metric numbers
+   and section titles that render as plain <p>/<span>/<div> (e.g. Site Health,
+   Error/Audit Logs counts, OrderStatusDonut) without touching each page. */
+.theme-cyan
+  :is(.text-xl, .text-2xl, .text-3xl, .text-4xl, .text-5xl) {
+  font-family: var(--font-heading);
+}
+
+/* Outlined panels (rounded + border-border) were designed for a white page;
+   on the grey canvas they look sunken. Give every such panel the card surface
+   — UNLESS it already sets its own background (bg-*), or is a dashed empty-state
+   placeholder. This filled-card look matches the DataTable and stat cards
+   without having to touch dozens of pages individually. */
+.theme-cyan
+  [class~="border-border"][class*="rounded-"]:not([class*="border-dashed"]):not(
+    [class*="bg-"]
+  ) {
+  background-color: var(--card);
+}
+
+/* ── Dark ──────────────────────────────────────────────────────────────────── */
+/* Keyed ONLY on the wrapper's own `.dark`, never an ancestor, so the
+   storefront's html.dark cannot force the backend dark. */
+.theme-cyan.dark {
+  color-scheme: dark;
+  --background: #06141a;
+  --foreground: #e5f5fa;
+  --card: #0a1f26;
+  --card-foreground: #e5f5fa;
+  --popover: #0a1f26;
+  --popover-foreground: #e5f5fa;
+  --primary: #22d3ee;
+  --primary-foreground: #04201f;
+  --secondary: #10303a;
+  --secondary-foreground: #e5f5fa;
+  --muted: #0e2730;
+  --muted-foreground: #7ba3ad;
+  --accent: #38bdf8;
+  --accent-foreground: #04222b;
+  --success: #10b981;
+  --destructive: #ef4444;
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: #22d3ee;
+  --chart-1: #22d3ee;
+  --chart-2: #38bdf8;
+  --chart-3: #22c55e;
+  --chart-4: #818cf8;
+  --chart-5: #a78bfa;
+  --sidebar: #0a1f26;
+  --sidebar-foreground: #e5f5fa;
+  --sidebar-primary: #22d3ee;
+  --sidebar-primary-foreground: #04201f;
+  --sidebar-accent: #10303a;
+  --sidebar-accent-foreground: #e5f5fa;
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: #22d3ee;
+}
