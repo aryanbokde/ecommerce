@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, ImageIcon } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { ImageUpload } from "@/components/shared/ImageUpload";
 import {
   Form,
   FormField,
@@ -123,31 +124,35 @@ export function ProfileTab() {
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex max-w-lg flex-col gap-5"
       >
-        {/* Avatar URL + live preview */}
-        <div className="flex items-center gap-4">
-          <span className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted">
-            {imageUrl && /^https?:\/\//.test(imageUrl) ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={imageUrl} alt="" className="size-full object-cover" />
-            ) : (
-              <ImageIcon className="size-6 text-muted-foreground" />
-            )}
-          </span>
-          <FormField
-            control={form.control}
-            name="image"
-            render={({ field }) => (
-              <FormItem className="flex-1">
-                <FormLabel>Avatar URL</FormLabel>
-                <FormControl>
-                  <Input placeholder="https://…/avatar.jpg" {...field} />
-                </FormControl>
-                <FormDescription>Paste a link to an image.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        {/* Avatar — upload (Cloudinary/local) or paste a URL */}
+        <FormField
+          control={form.control}
+          name="image"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Avatar</FormLabel>
+              <ImageUpload
+                value={imageUrl || null}
+                onChange={(url) =>
+                  form.setValue("image", url ?? "", { shouldDirty: true })
+                }
+                folder="avatars"
+                shape="circle"
+              />
+              <FormControl>
+                <Input
+                  className="mt-1"
+                  placeholder="…or paste an image URL"
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>
+                Upload an image or paste a link. Saved when you click Save.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}

@@ -13,7 +13,6 @@
 import { PrismaClient, Prisma } from "../src/generated/prisma";
 import { faker } from "@faker-js/faker";
 import bcrypt from "bcryptjs";
-import { nanoid } from "nanoid";
 import { seedSettings } from "./seed-settings";
 
 const prisma = new PrismaClient();
@@ -34,17 +33,83 @@ function kebab(s: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+// Real, category-relevant product photos hosted on our own Cloudinary
+// (res.cloudinary.com is whitelisted in next.config.ts). These are the assets
+// migrated from the source stock photos — owning them keeps the catalog stable
+// regardless of any external host.
+const CL = "https://res.cloudinary.com/dbgwxnfpa/image/upload";
+
+const IMG_POOL: Record<LeafType, string[]> = {
+  smartphones: [
+    `${CL}/v1781036067/myshop/products/r8p6eseltcppa6dokjwt.jpg`,
+    `${CL}/v1781036068/myshop/products/kuiysvrurqmw4hmhlady.jpg`,
+    `${CL}/v1781036069/myshop/products/o2bndz71l3lzpjhoy5pr.jpg`,
+    `${CL}/v1781036071/myshop/products/modxl0gxwbppazqxkebq.jpg`,
+    `${CL}/v1781036072/myshop/products/opejh4qoip8bdllef6ea.jpg`,
+    `${CL}/v1781036073/myshop/products/jununuafq3lwyecluxgo.jpg`,
+  ],
+  laptops: [
+    `${CL}/v1781036074/myshop/products/gsblqdlia4idmps34myf.jpg`,
+    `${CL}/v1781036075/myshop/products/t29torkq3zhvkiad42xg.jpg`,
+    `${CL}/v1781036076/myshop/products/u80udxafjsjqofywloxw.jpg`,
+    `${CL}/v1781036078/myshop/products/d4ljjprfiflvsicat63y.jpg`,
+    `${CL}/v1781036079/myshop/products/aujm7lbaqxbxxmpqhrx9.jpg`,
+    `${CL}/v1781036080/myshop/products/wm7jx7oaefzbfxg9hsjy.jpg`,
+  ],
+  books: [
+    `${CL}/v1781036104/myshop/products/jqw6keyy6robqwkdreqz.jpg`,
+    `${CL}/v1781036105/myshop/products/qpyqylkcgxrzqgojtfut.jpg`,
+    `${CL}/v1781036106/myshop/products/qehtkourm1dpibusvowc.jpg`,
+    `${CL}/v1781036107/myshop/products/ih9bvk4sqbv9tjbxy6uy.jpg`,
+    `${CL}/v1781036108/myshop/products/r5zw4gp5tatrceoerqkj.jpg`,
+    `${CL}/v1781036109/myshop/products/s6i5oionbhslwbtmofo1.jpg`,
+  ],
+  "home-kitchen": [
+    `${CL}/v1781036097/myshop/products/sybhluxvmghenzxjzf92.jpg`,
+    `${CL}/v1781036098/myshop/products/pa7gejmkxnxis1yqrm8m.jpg`,
+    `${CL}/v1781036099/myshop/products/huahqg9nm1ke8xrlrmwt.jpg`,
+    `${CL}/v1781036100/myshop/products/moa4wxqpwsfahddnmzcx.jpg`,
+    `${CL}/v1781036101/myshop/products/qj6oxbas9wlfz1yk6cyk.jpg`,
+    `${CL}/v1781036102/myshop/products/njfuzlietajqsmhbjibf.jpg`,
+  ],
+  "mens-wear": [
+    `${CL}/v1781036081/myshop/products/le485vifmejhyjf277t8.jpg`,
+    `${CL}/v1781036082/myshop/products/et8tcqweduwgbb7j1vyg.jpg`,
+    `${CL}/v1781036083/myshop/products/chdf8byti43hchvmwfrz.jpg`,
+    `${CL}/v1781036085/myshop/products/peujqv2ehcojlbudvqqh.jpg`,
+    `${CL}/v1781036087/myshop/products/bvdomrelvlrexuyeleij.jpg`,
+    `${CL}/v1781036089/myshop/products/j0nafxxxi1yvwy1idwrj.jpg`,
+  ],
+  "womens-wear": [
+    `${CL}/v1781036090/myshop/products/zoh3vxfdzvrixpm4kmnn.jpg`,
+    `${CL}/v1781036091/myshop/products/mqu3nieqeuuhlmknbrs6.jpg`,
+    `${CL}/v1781036092/myshop/products/ni225ntvrbdmrf8cqwqe.jpg`,
+    `${CL}/v1781036093/myshop/products/mrbrmakhwf3t1s5sh4gm.jpg`,
+    `${CL}/v1781036094/myshop/products/dpunucwriz36gxptabck.jpg`,
+    `${CL}/v1781036095/myshop/products/xoaktn1h0t6up57hipg9.jpg`,
+  ],
+};
+
+// Category banner by name (parents reuse a representative leaf photo).
+const CAT_IMG: Record<string, string> = {
+  Smartphones: IMG_POOL.smartphones[0],
+  Laptops: IMG_POOL.laptops[0],
+  "Men's Wear": IMG_POOL["mens-wear"][0],
+  "Women's Wear": IMG_POOL["womens-wear"][0],
+  "Home & Kitchen": IMG_POOL["home-kitchen"][0],
+  Books: IMG_POOL.books[0],
+  Electronics: IMG_POOL.laptops[1],
+  Fashion: IMG_POOL["womens-wear"][1],
+};
+
 function catImg(name: string): string {
-  return `https://placehold.co/400x400?text=${encodeURIComponent(name)}`;
+  return CAT_IMG[name] ?? IMG_POOL["home-kitchen"][0];
 }
 
-function productImgs(name: string): string[] {
-  const t = encodeURIComponent(name);
-  return [
-    `https://placehold.co/600x600?text=${t}`,
-    `https://placehold.co/600x600?text=${t}+2`,
-    `https://placehold.co/600x600?text=${t}+3`,
-  ];
+// Three category-relevant photos, rotated by the product's index for variety.
+function productImgs(type: LeafType, index: number): string[] {
+  const pool = IMG_POOL[type] ?? IMG_POOL["home-kitchen"];
+  return [0, 1, 2].map((k) => pool[(index + k) % pool.length]);
 }
 
 function firstImg(images: Prisma.JsonValue | null): string | null {
@@ -279,7 +344,9 @@ async function seedProducts(leaves: { id: string; type: LeafType }[]) {
 
       data.push({
         name,
-        slug: `${kebab(name)}-${nanoid(6).toLowerCase()}`,
+        // Deterministic suffix (global index) so slugs stay STABLE across
+        // reseeds — a random nanoid would break every product URL on each seed.
+        slug: `${kebab(name)}-${gi}`,
         description: faker.commerce.productDescription(),
         price,
         comparePrice,
@@ -288,7 +355,7 @@ async function seedProducts(leaves: { id: string; type: LeafType }[]) {
         stock,
         lowStockAt: 5,
         categoryId: leaf.id,
-        images: productImgs(name),
+        images: productImgs(leaf.type, i),
         tags: faker.helpers.arrayElements(TAGS[leaf.type], { min: 2, max: 4 }),
         isActive: !inactiveIdx.has(gi),
         isFeatured: featuredIdx.has(gi),

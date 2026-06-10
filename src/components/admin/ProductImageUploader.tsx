@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, X, Star, GripVertical, ImageOff } from "lucide-react";
+import { useRef, useState } from "react";
+import { Plus, X, Star, GripVertical, ImageOff, Upload, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { notifyError } from "@/lib/notify";
 
 interface ProductImageUploaderProps {
   /** Ordered list of image URLs. The first entry is the primary image. */
@@ -21,6 +22,38 @@ export function ProductImageUploader({
 }: ProductImageUploaderProps) {
   const [url, setUrl] = useState("");
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  // Upload one or more files to Cloudinary/local via /api/upload and append the
+  // returned URLs (preserving order, de-duped against existing).
+  async function uploadFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    const added: string[] = [];
+    try {
+      for (const file of Array.from(files)) {
+        const body = new FormData();
+        body.set("file", file);
+        body.set("folder", "products");
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          credentials: "include",
+          body,
+        });
+        const json = await res.json().catch(() => null);
+        if (!res.ok) {
+          notifyError("Upload failed", json?.error);
+          continue;
+        }
+        const u = json.data.url as string;
+        if (!value.includes(u) && !added.includes(u)) added.push(u);
+      }
+      if (added.length) onChange([...value, ...added]);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   function addUrl() {
     const u = url.trim();
@@ -76,6 +109,30 @@ export function ProductImageUploader({
         <Button type="button" variant="outline" onClick={addUrl}>
           <Plus className="size-4" />
           Add
+        </Button>
+        <input
+          ref={inputRef}
+          type="file"
+          multiple
+          accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
+          className="hidden"
+          onChange={(e) => {
+            void uploadFiles(e.target.files);
+            e.target.value = ""; // allow re-selecting the same file(s)
+          }}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          disabled={uploading}
+          onClick={() => inputRef.current?.click()}
+        >
+          {uploading ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Upload className="size-4" />
+          )}
+          Upload
         </Button>
       </div>
 

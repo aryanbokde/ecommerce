@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { ImageUpload } from "@/components/shared/ImageUpload";
 import {
   Select,
   SelectContent,
@@ -319,11 +320,20 @@ export function CategoryForm({
                 name="image"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Image URL</FormLabel>
+                    <FormLabel>Image</FormLabel>
+                    <ImageUpload
+                      value={field.value || null}
+                      onChange={(url) =>
+                        form.setValue("image", url ?? "", { shouldDirty: true })
+                      }
+                      folder="categories"
+                      shape="square"
+                    />
                     <FormControl>
                       <Input
+                        className="mt-1"
                         inputMode="url"
-                        placeholder="https://…"
+                        placeholder="…or paste an image URL"
                         {...field}
                       />
                     </FormControl>

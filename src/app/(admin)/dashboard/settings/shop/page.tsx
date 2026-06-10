@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { ImageUpload } from "@/components/shared/ImageUpload";
 import { notifySuccess, notifyError } from "@/lib/notify";
 
 type Group = "general" | "commerce" | "social" | "seo";
@@ -193,7 +194,23 @@ export default function ShopSettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {section.fields.map((f) =>
-                  f.type === "toggle" ? (
+                  f.key === "storeLogo" ? (
+                    <div key={f.key} className="space-y-1.5">
+                      <Label>{f.label}</Label>
+                      <ImageUpload
+                        value={form[f.key] || null}
+                        onChange={(url) => update(f.key, url ?? "")}
+                        folder="store"
+                        shape="square"
+                      />
+                      <Input
+                        className="mt-1"
+                        value={form[f.key] ?? ""}
+                        placeholder="…or paste a logo URL (blank = text logo)"
+                        onChange={(e) => update(f.key, e.target.value)}
+                      />
+                    </div>
+                  ) : f.type === "toggle" ? (
                     <div key={f.key} className="space-y-1.5">
                       <div className="flex items-center justify-between gap-3">
                         <Label htmlFor={`set-${f.key}`}>{f.label}</Label>

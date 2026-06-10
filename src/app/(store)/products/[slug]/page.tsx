@@ -7,7 +7,7 @@ import type {
   BreadcrumbList as BreadcrumbListSchema,
   WithContext,
 } from "schema-dts";
-import { Star } from "lucide-react";
+import { Star, Truck, RotateCcw, ShieldCheck, ChevronRight } from "lucide-react";
 import JsonLd from "@/components/shared/JsonLd";
 import { ProductImageGallery } from "@/components/shared/ProductImageGallery";
 import { ProductReviews } from "@/components/shared/ProductReviews";
@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
 import prisma from "@/server/db";
-import { getProductBySlug } from "@/server/services/product.service";
+import { getProductBySlug, getProducts } from "@/server/services/product.service";
 import type { Product } from "@/types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -107,21 +107,37 @@ export default async function ProductDetailPage({
   const onSale = compare != null && compare > price;
   const savings = onSale ? Math.round((1 - price / compare) * 100) : 0;
 
-  // Related products (same category) — fetched over HTTP so the client cards
-  // receive plain JSON (Prisma Decimal isn't serializable across the boundary).
+  // Related products (same category). Call the service directly — a Server
+  // Component must never fetch its own API route (self-fetch can deadlock the
+  // render). Serialize Prisma Decimals/Dates to plain values for the client cards.
   let related: Product[] = [];
   if (product.categoryId) {
     try {
-      const res = await fetch(
-        `${BASE_URL}/api/products?categoryId=${product.categoryId}&limit=5`,
-        { cache: "no-store" }
-      );
-      if (res.ok) {
-        const json = await res.json();
-        related = ((json?.data?.products ?? []) as Product[])
-          .filter((p) => p.id !== product.id)
-          .slice(0, 4);
-      }
+      const { products: rel } = await getProducts({
+        page: 1,
+        limit: 5,
+        categoryId: product.categoryId,
+        isActive: true,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      });
+      related = rel
+        .filter((p) => p.id !== product.id)
+        .slice(0, 4)
+        .map((p) => ({
+          id: p.id,
+          name: p.name,
+          slug: p.slug,
+          price: p.price.toString(),
+          comparePrice: p.comparePrice != null ? p.comparePrice.toString() : null,
+          images: toImages(p.images),
+          stock: p.stock,
+          category: p.category
+            ? { id: p.category.id, name: p.category.name, slug: p.category.slug }
+            : null,
+          createdAt: p.createdAt.toISOString(),
+          isActive: p.isActive,
+        })) as unknown as Product[];
     } catch {
       /* ignore — related is best-effort */
     }
@@ -217,17 +233,35 @@ export default async function ProductDetailPage({
       </Breadcrumb>
 
       {/* Gallery + info */}
-      <div className="grid gap-8 lg:grid-cols-2">
-        <ProductImageGallery images={images} name={product.name} />
+      <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
+        {/* Gallery sticks while the (often taller) info column scrolls. */}
+        <div className="lg:sticky lg:top-24 lg:self-start">
+          <ProductImageGallery images={images} name={product.name} />
+        </div>
 
-        <div className="flex flex-col gap-4">
-          <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+        <div className="flex flex-col">
+          {/* Category eyebrow */}
+          {product.category && (
+            <Link
+              href={`/shop?category=${product.category.slug}`}
+              className="mb-2 inline-flex w-fit items-center text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {product.category.name}
+              <ChevronRight className="size-3.5" />
+            </Link>
+          )}
+
+          <h1 className="font-heading text-3xl font-semibold leading-tight tracking-tight text-foreground sm:text-4xl">
             {product.name}
           </h1>
 
+          {/* Rating → jumps to reviews */}
           {totalReviews > 0 && (
-            <div className="flex items-center gap-2">
-              <div className="flex">
+            <a
+              href="#reviews"
+              className="mt-3 flex w-fit items-center gap-2 text-sm transition-opacity hover:opacity-80"
+            >
+              <span className="flex">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star
                     key={i}
@@ -235,86 +269,116 @@ export default async function ProductDetailPage({
                       "size-4",
                       i < Math.round(avgRating)
                         ? "fill-amber-400 text-amber-400"
-                        : "text-muted-foreground/40"
+                        : "text-muted-foreground/30"
                     )}
                   />
                 ))}
-              </div>
-              <span className="text-sm text-muted-foreground">
-                {avgRating.toFixed(1)} ({totalReviews})
               </span>
-            </div>
+              <span className="font-medium text-foreground">
+                {avgRating.toFixed(1)}
+              </span>
+              <span className="text-muted-foreground underline-offset-4 hover:underline">
+                {totalReviews} review{totalReviews === 1 ? "" : "s"}
+              </span>
+            </a>
           )}
 
-          <div className="flex items-center gap-3">
-            <span className="text-2xl font-semibold text-foreground">
+          {/* Price */}
+          <div className="mt-5 flex flex-wrap items-baseline gap-3">
+            <span className="text-3xl font-bold tracking-tight text-foreground">
               {formatPrice(price)}
             </span>
             {onSale && (
               <>
-                <span className="text-base text-muted-foreground line-through">
+                <span className="text-lg text-muted-foreground line-through">
                   {formatPrice(compare!)}
                 </span>
-                <span className="rounded-md bg-red-600 px-1.5 py-0.5 text-xs font-semibold text-white">
-                  {savings}% off
+                <span className="rounded-full bg-red-600/10 px-2.5 py-1 text-xs font-semibold text-red-600">
+                  Save {savings}%
                 </span>
               </>
             )}
           </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Inclusive of all taxes
+          </p>
+
+          {/* Stock */}
+          <div className="mt-4 flex items-center gap-2">
+            <span
+              className={cn(
+                "inline-block size-2 rounded-full",
+                product.stock > 10
+                  ? "bg-green-500"
+                  : product.stock > 0
+                    ? "bg-amber-500"
+                    : "bg-red-500"
+              )}
+            />
+            <span className={cn("text-sm font-medium", stockLabel.className)}>
+              {stockLabel.text}
+            </span>
+          </div>
 
           {product.description && (
-            <p className="text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
               {product.description}
             </p>
           )}
 
-          <p className={cn("text-sm font-medium", stockLabel.className)}>
-            {stockLabel.text}
-          </p>
+          <div className="mt-6 border-t border-border pt-6">
+            <ProductBuyBox
+              productId={product.id}
+              productName={product.name}
+              productSlug={product.slug}
+              price={product.price.toString()}
+              image={
+                Array.isArray(product.images) &&
+                typeof product.images[0] === "string"
+                  ? product.images[0]
+                  : null
+              }
+              stock={product.stock}
+            />
+          </div>
 
-          <ProductBuyBox
-            productId={product.id}
-            productName={product.name}
-            productSlug={product.slug}
-            price={product.price.toString()}
-            image={
-              Array.isArray(product.images) &&
-              typeof product.images[0] === "string"
-                ? product.images[0]
-                : null
-            }
-            stock={product.stock}
-          />
+          {/* Trust badges */}
+          <div className="mt-6 grid grid-cols-3 gap-3 rounded-xl border border-border bg-muted/30 p-4">
+            {[
+              { icon: Truck, title: "Free shipping", sub: "Orders over ₹999" },
+              { icon: RotateCcw, title: "Easy returns", sub: "7-day window" },
+              { icon: ShieldCheck, title: "Secure", sub: "Safe checkout" },
+            ].map((b) => (
+              <div key={b.title} className="flex flex-col items-center gap-1.5 text-center">
+                <b.icon className="size-5 text-foreground" />
+                <span className="text-xs font-semibold text-foreground">
+                  {b.title}
+                </span>
+                <span className="text-[11px] leading-tight text-muted-foreground">
+                  {b.sub}
+                </span>
+              </div>
+            ))}
+          </div>
 
           {/* Meta */}
-          <dl className="mt-2 flex flex-col gap-1.5 border-t border-border pt-4 text-sm">
+          <dl className="mt-6 flex flex-col gap-2 border-t border-border pt-5 text-sm">
             {product.sku && (
               <div className="flex gap-2">
-                <dt className="text-muted-foreground">SKU</dt>
-                <dd className="text-foreground">{product.sku}</dd>
-              </div>
-            )}
-            {product.category && (
-              <div className="flex gap-2">
-                <dt className="text-muted-foreground">Category</dt>
-                <dd>
-                  <Link
-                    href={`/shop?category=${product.category.slug}`}
-                    className="text-primary hover:underline"
-                  >
-                    {product.category.name}
-                  </Link>
+                <dt className="w-20 shrink-0 text-muted-foreground">SKU</dt>
+                <dd className="font-medium text-foreground tabular-nums">
+                  {product.sku}
                 </dd>
               </div>
             )}
             {tags.length > 0 && (
               <div className="flex gap-2">
-                <dt className="text-muted-foreground">Tags</dt>
+                <dt className="w-20 shrink-0 text-muted-foreground">Tags</dt>
                 <dd className="flex flex-wrap gap-1.5">
                   {tags.map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                      className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground"
                     >
                       {tag}
                     </span>
@@ -327,7 +391,7 @@ export default async function ProductDetailPage({
       </div>
 
       {/* Reviews */}
-      <div className="mt-12">
+      <div id="reviews" className="mt-16 scroll-mt-24 border-t border-border pt-10">
         <ProductReviews
           productId={product.id}
           avgRating={avgRating}

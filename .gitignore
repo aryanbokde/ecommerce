@@ -44,3 +44,6 @@ next-env.d.ts
 
 # application logs
 /logs
+
+# Local-storage uploads (dev only; use Cloudinary in prod)
+public/uploads/
