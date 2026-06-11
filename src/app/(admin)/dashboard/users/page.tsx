@@ -119,12 +119,16 @@ export default function UsersPage() {
   const [result, setResult] = useState<{
     key: string;
     users: AdminUser[];
+    total: number;
     page: number;
     totalPages: number;
   } | null>(null);
   const [banTarget, setBanTarget] = useState<AdminUser | null>(null);
   const [banReason, setBanReason] = useState("");
   const [busy, setBusy] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkBanOpen, setBulkBanOpen] = useState(false);
+  const [bulkBanReason, setBulkBanReason] = useState("");
 
   const key = JSON.stringify(server);
   const isLoading = result?.key !== key;
@@ -149,13 +153,14 @@ export default function UsersPage() {
         setResult({
           key,
           users: d.users ?? [],
+          total: d.total ?? 0,
           page: d.page ?? 1,
           totalPages: d.totalPages ?? 1,
         });
       })
       .catch(() => {
         if (!ctrl.signal.aborted)
-          setResult({ key, users: [], page: 1, totalPages: 1 });
+          setResult({ key, users: [], total: 0, page: 1, totalPages: 1 });
       });
     return () => ctrl.abort();
   }, [server, key]);
@@ -204,20 +209,62 @@ export default function UsersPage() {
     }
   }
 
+  // Bulk ban/unban the selected users (parallel per-id PATCH). Skips the current
+  // admin so you can never lock yourself out.
+  async function bulkSetActive(ids: string[], active: boolean, reason?: string) {
+    const targets = ids.filter((id) => id !== currentUser?.id);
+    if (targets.length === 0) {
+      notifyError("Nothing to update", "You can't ban your own account.");
+      return;
+    }
+    setBusy(true);
+    const results = await Promise.all(
+      targets.map((id) =>
+        fetch(`/api/users/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(
+            active ? { isActive: true } : { isActive: false, banReason: reason?.trim() ?? "" }
+          ),
+        }).then((r) => r.ok)
+      )
+    );
+    setBusy(false);
+    const ok = results.filter(Boolean).length;
+    if (ok > 0)
+      notifySuccess(
+        `${ok} ${ok === 1 ? "user" : "users"} ${active ? "unbanned" : "banned"}`
+      );
+    if (ok < targets.length)
+      notifyError("Some updates failed", `${targets.length - ok} failed`);
+    setSelectedIds([]);
+    setBulkBanOpen(false);
+    setBulkBanReason("");
+    bump();
+  }
+
   const columns: Column<AdminUser>[] = [
+    {
+      key: "avatar",
+      header: "",
+      className: "w-0",
+      render: (u) => (
+        <Avatar size="sm" className="ring-1 ring-border">
+          {u.image ? <AvatarImage src={u.image} alt={u.name} /> : null}
+          <AvatarFallback>{initials(u.name)}</AvatarFallback>
+        </Avatar>
+      ),
+    },
     {
       key: "name",
       header: "User",
       render: (u) => (
         <Link
           href={`/dashboard/users/${u.id}`}
-          className="flex items-center gap-2.5"
+          className="font-medium hover:underline"
         >
-          <Avatar size="sm">
-            {u.image ? <AvatarImage src={u.image} alt={u.name} /> : null}
-            <AvatarFallback>{initials(u.name)}</AvatarFallback>
-          </Avatar>
-          <span className="font-medium hover:underline">{u.name}</span>
+          {u.name}
         </Link>
       ),
     },
@@ -278,21 +325,28 @@ export default function UsersPage() {
   return (
     <DashboardShell title="Users" description="Manage roles and access">
       <div className="flex flex-col gap-4">
-        {/* Role filter tabs */}
-        <Tabs
-          value={server.role}
-          onValueChange={(v) =>
-            setServer((s) => ({ ...s, role: v ?? "all", page: 1 }))
-          }
-        >
-          <TabsList className="h-auto flex-wrap">
-            {ROLE_TABS.map((r) => (
-              <TabsTrigger key={r.value} value={r.value}>
-                {r.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        {/* Role filter tabs + result count */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Tabs
+            value={server.role}
+            onValueChange={(v) =>
+              setServer((s) => ({ ...s, role: v ?? "all", page: 1 }))
+            }
+          >
+            <TabsList className="h-auto flex-wrap">
+              {ROLE_TABS.map((r) => (
+                <TabsTrigger key={r.value} value={r.value}>
+                  {r.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+          {result && !isLoading && (
+            <span className="text-sm text-muted-foreground">
+              {result.total} {result.total === 1 ? "user" : "users"}
+            </span>
+          )}
+        </div>
 
         <DataTable
           columns={columns}
@@ -303,6 +357,34 @@ export default function UsersPage() {
           searchPlaceholder="Search name or email…"
           onSearch={(search) => setServer((s) => ({ ...s, search, page: 1 }))}
           emptyMessage="No users match these filters."
+          selectable
+          selectedIds={selectedIds}
+          onSelectionChange={setSelectedIds}
+          bulkBar={(ids) => (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() => bulkSetActive(ids, true)}
+              >
+                <ShieldCheck className="size-4" />
+                Unban
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={busy}
+                onClick={() => {
+                  setBulkBanReason("");
+                  setBulkBanOpen(true);
+                }}
+              >
+                <Ban className="size-4" />
+                Ban
+              </Button>
+            </>
+          )}
           toolbar={
             <div className="flex flex-wrap items-center gap-2">
               <Select
@@ -423,6 +505,41 @@ export default function UsersPage() {
             >
               {busy && <Loader2 className="size-4 animate-spin" />}
               Ban user
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk ban dialog */}
+      <Dialog
+        open={bulkBanOpen}
+        onOpenChange={(open) => !busy && setBulkBanOpen(open)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Ban {selectedIds.filter((id) => id !== currentUser?.id).length} users?
+            </DialogTitle>
+            <DialogDescription>
+              They will be deactivated and blocked from signing in. Your own
+              account is skipped. Add a reason for the record.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            rows={3}
+            value={bulkBanReason}
+            onChange={(e) => setBulkBanReason(e.target.value)}
+            placeholder="Reason for banning…"
+          />
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+            <Button
+              variant="destructive"
+              disabled={busy || bulkBanReason.trim() === ""}
+              onClick={() => bulkSetActive(selectedIds, false, bulkBanReason)}
+            >
+              {busy && <Loader2 className="size-4 animate-spin" />}
+              Ban users
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -8,6 +8,8 @@ import {
   Trash2,
   ImageIcon,
   Loader2,
+  ArchiveRestore,
+  Archive,
 } from "lucide-react";
 import { DashboardShell } from "@/components/admin/DashboardShell";
 import { DataTable, type Column } from "@/components/admin/DataTable";
@@ -30,6 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import { notifyError, notifySuccess } from "@/lib/notify";
 
 interface AdminProduct {
@@ -70,11 +73,20 @@ const inr = (v: string | number) =>
     maximumFractionDigits: 2,
   })}`;
 
+type StatusFilter = "all" | "active" | "archived";
+
+const STATUS_TABS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "archived", label: "Archived" },
+];
+
 interface Query {
   page: number;
   limit: number;
   search: string;
   categoryId: string | null;
+  status: StatusFilter;
   sortBy: string;
   sortOrder: "asc" | "desc";
 }
@@ -93,6 +105,7 @@ export default function ProductsPage() {
     limit: 20,
     search: "",
     categoryId: null,
+    status: "all",
     sortBy: "createdAt",
     sortOrder: "desc",
   });
@@ -100,6 +113,7 @@ export default function ProductsPage() {
   const [result, setResult] = useState<{
     key: string;
     products: AdminProduct[];
+    total: number;
     page: number;
     totalPages: number;
   } | null>(null);
@@ -120,9 +134,11 @@ export default function ProductsPage() {
     p.set("limit", String(query.limit));
     if (query.search) p.set("search", query.search);
     if (query.categoryId) p.set("categoryId", query.categoryId);
+    // Status tab → isActive filter. "all" omits it so admins see everything.
+    if (query.status === "active") p.set("isActive", "true");
+    if (query.status === "archived") p.set("isActive", "false");
     p.set("sortBy", query.sortBy);
     p.set("sortOrder", query.sortOrder);
-    // No isActive filter → admins see active AND inactive products.
     fetch(`/api/products?${p.toString()}`, {
       signal: ctrl.signal,
       credentials: "include",
@@ -133,13 +149,14 @@ export default function ProductsPage() {
         setResult({
           key,
           products: d.products ?? [],
+          total: d.total ?? 0,
           page: d.page ?? 1,
           totalPages: d.totalPages ?? 1,
         });
       })
       .catch(() => {
         if (!ctrl.signal.aborted)
-          setResult({ key, products: [], page: 1, totalPages: 1 });
+          setResult({ key, products: [], total: 0, page: 1, totalPages: 1 });
       });
     return () => ctrl.abort();
   }, [query, refreshTick, key]);
@@ -159,6 +176,11 @@ export default function ProductsPage() {
   }, []);
 
   const bump = () => setRefreshTick((t) => t + 1);
+
+  function setStatus(status: StatusFilter) {
+    setQuery((q) => ({ ...q, status, page: 1 }));
+    setSelectedIds([]);
+  }
 
   async function toggleStatus(p: AdminProduct, next: boolean) {
     const res = await fetch(`/api/products/${p.id}`, {
@@ -195,20 +217,26 @@ export default function ProductsPage() {
 
   async function bulkSetActive(ids: string[], active: boolean) {
     setBusy(true);
-    await Promise.all(
+    const results = await Promise.all(
       ids.map((id) =>
         fetch(`/api/products/${id}`, {
           ...PUT_JSON,
           body: JSON.stringify({ isActive: active }),
-        })
+        }).then((r) => r.ok)
       )
     );
     setBusy(false);
-    notifySuccess(
-      `${ids.length} ${ids.length === 1 ? "product" : "products"} ${
-        active ? "activated" : "deactivated"
-      }`
-    );
+    const ok = results.filter(Boolean).length;
+    if (ok > 0) {
+      notifySuccess(
+        `${ok} ${ok === 1 ? "product" : "products"} ${
+          active ? "restored" : "archived"
+        }`
+      );
+    }
+    if (ok < ids.length) {
+      notifyError(`${ids.length - ok} failed`, "Some products couldn't be updated.");
+    }
     setSelectedIds([]);
     bump();
   }
@@ -225,7 +253,12 @@ export default function ProductsPage() {
           <img
             src={src}
             alt={p.name}
-            className="size-10 rounded-md object-cover"
+            loading="lazy"
+            decoding="async"
+            className={cn(
+              "size-10 rounded-md object-cover ring-1 ring-border",
+              !p.isActive && "opacity-50 grayscale"
+            )}
           />
         ) : (
           <div className="flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
@@ -239,12 +272,26 @@ export default function ProductsPage() {
       header: "Name",
       sortable: true,
       render: (p) => (
-        <Link
-          href={`/dashboard/products/${p.id}/edit`}
-          className="font-medium hover:underline"
-        >
-          {p.name}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/dashboard/products/${p.id}/edit`}
+            className={cn(
+              "font-medium hover:underline",
+              !p.isActive && "text-muted-foreground"
+            )}
+          >
+            {p.name}
+          </Link>
+          {!p.isActive && (
+            <Badge
+              variant="secondary"
+              className="gap-1 text-muted-foreground"
+            >
+              <Archive className="size-3" />
+              Archived
+            </Badge>
+          )}
+        </div>
       ),
     },
     {
@@ -259,7 +306,8 @@ export default function ProductsPage() {
     {
       key: "category",
       header: "Category",
-      render: (p) => p.category?.name ?? <span className="text-muted-foreground">—</span>,
+      render: (p) =>
+        p.category?.name ?? <span className="text-muted-foreground">—</span>,
     },
     {
       key: "price",
@@ -311,6 +359,41 @@ export default function ProductsPage() {
         </Button>
       }
     >
+      {/* Status segmented filter + result count */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div
+          role="tablist"
+          aria-label="Filter by status"
+          className="inline-flex items-center gap-1 rounded-lg border border-border bg-muted/40 p-1"
+        >
+          {STATUS_TABS.map((tab) => {
+            const selected = query.status === tab.value;
+            return (
+              <button
+                key={tab.value}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => setStatus(tab.value)}
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  selected
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+        {result && !isLoading && (
+          <span className="text-sm text-muted-foreground">
+            {result.total} {result.total === 1 ? "product" : "products"}
+          </span>
+        )}
+      </div>
+
       <DataTable
         columns={columns}
         data={result?.products ?? []}
@@ -326,10 +409,15 @@ export default function ProductsPage() {
           setQuery((q) => ({ ...q, search, page: 1 }));
           setSelectedIds([]);
         }}
-        emptyMessage="No products found."
+        emptyMessage={
+          query.status === "archived"
+            ? "No archived products."
+            : "No products found."
+        }
         selectable
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
+        rowClassName={(p) => (!p.isActive ? "bg-muted/30" : undefined)}
         bulkBar={(ids) => (
           <>
             <Button
@@ -338,7 +426,8 @@ export default function ProductsPage() {
               disabled={busy}
               onClick={() => bulkSetActive(ids, true)}
             >
-              Activate
+              <ArchiveRestore className="size-4" />
+              Restore
             </Button>
             <Button
               size="sm"
@@ -346,61 +435,62 @@ export default function ProductsPage() {
               disabled={busy}
               onClick={() => bulkSetActive(ids, false)}
             >
-              Deactivate
+              <Archive className="size-4" />
+              Archive
             </Button>
           </>
         )}
         toolbar={
           <div className="flex flex-wrap items-center gap-2">
-          <Select
-            value={query.categoryId ?? "all"}
-            // items maps value → label so the trigger shows the category NAME
-            // (not the raw id) once one is selected.
-            items={[
-              { value: "all", label: "All categories" },
-              ...categories.map((c) => ({ value: c.id, label: c.name })),
-            ]}
-            onValueChange={(v) => {
-              setQuery((q) => ({
-                ...q,
-                categoryId: v === "all" || v == null ? null : v,
-                page: 1,
-              }));
-              setSelectedIds([]);
-            }}
-          >
-            <SelectTrigger className="h-9 w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All categories</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {"  ".repeat(c.depth)}
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Select
+              value={query.categoryId ?? "all"}
+              // items maps value → label so the trigger shows the category NAME
+              // (not the raw id) once one is selected.
+              items={[
+                { value: "all", label: "All categories" },
+                ...categories.map((c) => ({ value: c.id, label: c.name })),
+              ]}
+              onValueChange={(v) => {
+                setQuery((q) => ({
+                  ...q,
+                  categoryId: v === "all" || v == null ? null : v,
+                  page: 1,
+                }));
+                setSelectedIds([]);
+              }}
+            >
+              <SelectTrigger className="h-9 w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {"  ".repeat(c.depth)}
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select
-            value={String(query.limit)}
-            onValueChange={(v) => {
-              setQuery((q) => ({ ...q, limit: Number(v) || 20, page: 1 }));
-              setSelectedIds([]);
-            }}
-          >
-            <SelectTrigger className="h-9 w-32" aria-label="Products per page">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PER_PAGE_OPTIONS.map((n) => (
-                <SelectItem key={n} value={String(n)}>
-                  {n} / page
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Select
+              value={String(query.limit)}
+              onValueChange={(v) => {
+                setQuery((q) => ({ ...q, limit: Number(v) || 20, page: 1 }));
+                setSelectedIds([]);
+              }}
+            >
+              <SelectTrigger className="h-9 w-32" aria-label="Products per page">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PER_PAGE_OPTIONS.map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n} / page
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         }
         rowActions={(p) => (
@@ -414,19 +504,30 @@ export default function ProductsPage() {
             >
               <Pencil className="size-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Delete"
-              onClick={() => setDeleteTarget(p)}
-            >
-              <Trash2 className="size-4 text-destructive" />
-            </Button>
+            {p.isActive ? (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Archive"
+                onClick={() => setDeleteTarget(p)}
+              >
+                <Trash2 className="size-4 text-destructive" />
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Restore"
+                onClick={() => toggleStatus(p, true)}
+              >
+                <ArchiveRestore className="size-4 text-emerald-600" />
+              </Button>
+            )}
           </div>
         )}
       />
 
-      {/* Delete confirmation */}
+      {/* Archive confirmation */}
       <Dialog
         open={deleteTarget !== null}
         onOpenChange={(open) => {
@@ -435,28 +536,26 @@ export default function ProductsPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete product?</DialogTitle>
+            <DialogTitle>Archive product?</DialogTitle>
             <DialogDescription>
-              “{deleteTarget?.name}” will be archived — deactivated and hidden
-              from the store. Existing order history is preserved.
+              “{deleteTarget?.name}” will be deactivated and hidden from the
+              store. Existing order history is preserved, and you can restore it
+              any time from the Archived tab.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>
-              Cancel
-            </DialogClose>
+            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
             <Button
               variant="destructive"
               onClick={confirmDelete}
               disabled={deleting}
             >
               {deleting && <Loader2 className="size-4 animate-spin" />}
-              Delete
+              Archive
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </DashboardShell>
   );
 }

@@ -32,19 +32,24 @@ interface PageProps {
   searchParams: Promise<{
     action?: string;
     status?: string;
+    from?: string;
+    to?: string;
     page?: string;
     limit?: string;
   }>;
 }
 
 export default async function AuditLogsPage({ searchParams }: PageProps) {
-  const { action, status, page = "1", limit = "20" } = await searchParams;
+  const { action, status, from, to, page = "1", limit = "20" } =
+    await searchParams;
 
   const [stats, logsResult] = await Promise.all([
     getAuditStats().catch(() => FALLBACK_STATS),
     getAuditLogs({
       action: (action as AuditAction) ?? undefined,
       status: (status as AuditStatus) ?? undefined,
+      from: from ? new Date(from) : undefined,
+      to: to ? new Date(`${to}T23:59:59.999`) : undefined,
       page: Math.max(1, parseInt(page, 10)),
       limit: Math.min(100, Math.max(1, parseInt(limit, 10))),
     }).catch(() => FALLBACK_LOGS),

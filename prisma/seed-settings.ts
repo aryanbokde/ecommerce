@@ -39,6 +39,7 @@ export const STORE_SETTINGS: SettingSeed[] = [
   { group: "commerce", key: "cancellationsEnabled", value: "true" },
   { group: "commerce", key: "returnsEnabled", value: "true" },
   { group: "commerce", key: "returnWindowDays", value: "7" },
+  { group: "commerce", key: "monthlyRevenueTarget", value: "500000" },
   // social
   { group: "social", key: "socialFacebook", value: "" },
   { group: "social", key: "socialInstagram", value: "" },

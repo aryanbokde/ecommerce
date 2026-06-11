@@ -45,7 +45,14 @@ export function ImageUpload({
         notifyError("Upload failed", json?.error);
         return;
       }
-      onChange(json.data.url as string);
+      // Guard: only ever hand a string URL back. A non-string (e.g. an object
+      // from an unexpected response) would render as "[object Object]".
+      const url = json?.data?.url;
+      if (typeof url !== "string" || url === "") {
+        notifyError("Upload failed", "Unexpected response from the server.");
+        return;
+      }
+      onChange(url);
     } catch {
       notifyError("Upload failed", "Please try again.");
     } finally {

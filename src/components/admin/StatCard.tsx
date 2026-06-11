@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import Link from "next/link";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,8 @@ interface StatCardProps {
   /** Context line beside/under the trend, e.g. "vs last month" or "3 pending". */
   trendLabel?: string;
   accent?: Accent;
+  /** When set, the whole card becomes a link to this route. */
+  href?: string;
 }
 
 export function StatCard({
@@ -33,13 +36,26 @@ export function StatCard({
   trend,
   trendLabel,
   accent = "primary",
+  href,
 }: StatCardProps) {
   const hasTrend = typeof trend === "number" && Number.isFinite(trend);
   const up = (trend ?? 0) >= 0;
 
   return (
-    <Card>
-      <CardContent className="flex items-start justify-between gap-3">
+    <Card
+      className={cn(
+        href &&
+          "transition-colors hover:border-primary/40 hover:bg-muted/30 focus-within:border-primary/40"
+      )}
+    >
+      <CardContent className="relative flex items-start justify-between gap-3">
+        {href && (
+          <Link
+            href={href}
+            aria-label={title}
+            className="absolute inset-0 z-10 rounded-xl"
+          />
+        )}
         <div className="min-w-0 space-y-1">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
           <p className="font-[family-name:var(--font-heading)] text-2xl font-semibold tracking-tight tabular-nums text-foreground">

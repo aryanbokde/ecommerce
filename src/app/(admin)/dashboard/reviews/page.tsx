@@ -102,6 +102,7 @@ export default function ReviewsPage() {
   const [result, setResult] = useState<{
     key: string;
     reviews: AdminReview[];
+    total: number;
     page: number;
     totalPages: number;
   } | null>(null);
@@ -135,13 +136,14 @@ export default function ReviewsPage() {
         setResult({
           key,
           reviews: d.reviews ?? [],
+          total: d.total ?? 0,
           page: d.page ?? 1,
           totalPages: d.totalPages ?? 1,
         });
       })
       .catch(() => {
         if (!ctrl.signal.aborted)
-          setResult({ key, reviews: [], page: 1, totalPages: 1 });
+          setResult({ key, reviews: [], total: 0, page: 1, totalPages: 1 });
       });
     return () => ctrl.abort();
   }, [server, key]);
@@ -184,6 +186,52 @@ export default function ReviewsPage() {
       const j = await res.json().catch(() => null);
       notifyError("Couldn't update review", j?.error);
     }
+  }
+
+  // Bulk show/hide the selected reviews (parallel per-id PATCH).
+  async function bulkSetVisible(ids: string[], isVisible: boolean) {
+    setBusy(true);
+    const results = await Promise.all(
+      ids.map((id) =>
+        fetch(`/api/reviews/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ isVisible }),
+        }).then((r) => r.ok)
+      )
+    );
+    setBusy(false);
+    const ok = results.filter(Boolean).length;
+    if (ok > 0)
+      notifySuccess(
+        `${ok} ${ok === 1 ? "review" : "reviews"} ${isVisible ? "shown" : "hidden"}`
+      );
+    if (ok < ids.length)
+      notifyError("Some updates failed", `${ids.length - ok} failed`);
+    setSelectedIds([]);
+    bump();
+  }
+
+  // Bulk mark the selected reviews as seen → clears them from the "new" badge.
+  async function bulkMarkSeen(ids: string[]) {
+    setBusy(true);
+    const results = await Promise.all(
+      ids.map((id) =>
+        fetch(`/api/reviews/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ seen: true }),
+        }).then((r) => r.ok)
+      )
+    );
+    setBusy(false);
+    const ok = results.filter(Boolean).length;
+    if (ok > 0) notifySuccess(`${ok} marked as seen`);
+    window.dispatchEvent(new Event(ADMIN_BADGES_REFRESH));
+    setSelectedIds([]);
+    bump();
   }
 
   // Bulk delete the selected reviews (parallel per-id DELETE).
@@ -236,10 +284,16 @@ export default function ReviewsPage() {
         const src = r.product?.images?.[0];
         return (
           <div className="flex items-center gap-2.5">
-            <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">
+            <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted ring-1 ring-border">
               {src ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={src} alt="" className="size-full object-cover" />
+                <img
+                  src={src}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  className="size-full object-cover"
+                />
               ) : (
                 <ImageIcon className="size-4 text-muted-foreground" />
               )}
@@ -318,19 +372,26 @@ export default function ReviewsPage() {
       description="Moderate customer reviews — hide spam or abusive content"
     >
       <div className="flex flex-col gap-4">
-        {/* Visibility filter tabs */}
-        <Tabs
-          value={server.visibility}
-          onValueChange={(v) =>
-            setServer((s) => ({ ...s, visibility: v ?? "all", page: 1 }))
-          }
-        >
-          <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="visible">Visible</TabsTrigger>
-            <TabsTrigger value="hidden">Hidden</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        {/* Visibility filter tabs + result count */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Tabs
+            value={server.visibility}
+            onValueChange={(v) =>
+              setServer((s) => ({ ...s, visibility: v ?? "all", page: 1 }))
+            }
+          >
+            <TabsList>
+              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="visible">Visible</TabsTrigger>
+              <TabsTrigger value="hidden">Hidden</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          {result && !isLoading && (
+            <span className="text-sm text-muted-foreground">
+              {result.total} {result.total === 1 ? "review" : "reviews"}
+            </span>
+          )}
+        </div>
 
         <DataTable
           columns={columns}
@@ -350,15 +411,44 @@ export default function ReviewsPage() {
           selectedIds={selectedIds}
           onSelectionChange={setSelectedIds}
           bulkBar={(ids) => (
-            <Button
-              size="sm"
-              variant="destructive"
-              disabled={bulkDeleting}
-              onClick={() => setBulkDeleteOpen(true)}
-            >
-              <Trash2 className="size-4" />
-              Delete ({ids.length})
-            </Button>
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() => bulkSetVisible(ids, true)}
+              >
+                <Eye className="size-4" />
+                Show
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() => bulkSetVisible(ids, false)}
+              >
+                <EyeOff className="size-4" />
+                Hide
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() => bulkMarkSeen(ids)}
+              >
+                <CheckCheck className="size-4" />
+                Mark seen
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={bulkDeleting}
+                onClick={() => setBulkDeleteOpen(true)}
+              >
+                <Trash2 className="size-4" />
+                Delete ({ids.length})
+              </Button>
+            </>
           )}
           toolbar={
             <div className="flex flex-wrap items-center gap-2">

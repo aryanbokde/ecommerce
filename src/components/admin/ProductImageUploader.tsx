@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Plus, X, Star, GripVertical, ImageOff, Upload, Loader2 } from "lucide-react";
+import { Plus, X, Star, GripVertical, ImageUp, Upload, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -13,41 +13,53 @@ interface ProductImageUploaderProps {
   onChange: (urls: string[]) => void;
 }
 
-// URL-based image manager: add by URL, drag to reorder, remove, and the first
-// image is the primary. (No binary upload endpoint exists yet — when one is
-// added, wire an "Upload" button here that pushes the returned URL.)
+const ACCEPT = "image/jpeg,image/png,image/webp,image/avif,image/gif";
+
+// Image manager: drag-drop or pick files (uploaded to Cloudinary/local via
+// /api/upload), or add by URL. Drag tiles to reorder; the first image is the
+// primary one shown on the storefront.
 export function ProductImageUploader({
   value,
   onChange,
 }: ProductImageUploaderProps) {
   const [url, setUrl] = useState("");
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [fileDragging, setFileDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
-  // Upload one or more files to Cloudinary/local via /api/upload and append the
-  // returned URLs (preserving order, de-duped against existing).
-  async function uploadFiles(files: FileList | null) {
-    if (!files || files.length === 0) return;
+  // Upload files to /api/upload in parallel and append the returned URLs
+  // (preserving selection order, de-duped against existing + each other).
+  async function uploadFiles(files: FileList | File[] | null) {
+    const list = files ? Array.from(files) : [];
+    if (list.length === 0) return;
     setUploading(true);
-    const added: string[] = [];
     try {
-      for (const file of Array.from(files)) {
-        const body = new FormData();
-        body.set("file", file);
-        body.set("folder", "products");
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          credentials: "include",
-          body,
-        });
-        const json = await res.json().catch(() => null);
-        if (!res.ok) {
-          notifyError("Upload failed", json?.error);
-          continue;
+      const results = await Promise.all(
+        list.map(async (file) => {
+          const body = new FormData();
+          body.set("file", file);
+          body.set("folder", "products");
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            credentials: "include",
+            body,
+          });
+          const json = await res.json().catch(() => null);
+          if (!res.ok) {
+            notifyError(`Upload failed: ${file.name}`, json?.error);
+            return null;
+          }
+          return json.data.url as string;
+        })
+      );
+      const seen = new Set(value);
+      const added: string[] = [];
+      for (const u of results) {
+        if (u && !seen.has(u)) {
+          seen.add(u);
+          added.push(u);
         }
-        const u = json.data.url as string;
-        if (!value.includes(u) && !added.includes(u)) added.push(u);
       }
       if (added.length) onChange([...value, ...added]);
     } finally {
@@ -78,7 +90,7 @@ export function ProductImageUploader({
     onChange(next);
   }
 
-  function handleDrop(target: number) {
+  function handleReorderDrop(target: number) {
     if (dragIndex === null || dragIndex === target) {
       setDragIndex(null);
       return;
@@ -90,13 +102,37 @@ export function ProductImageUploader({
     setDragIndex(null);
   }
 
+  // Files dragged in from the desktop (no internal reorder in progress).
+  function onZoneDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setFileDragging(false);
+    if (dragIndex !== null) return; // internal reorder handled per-tile
+    if (e.dataTransfer.files?.length) void uploadFiles(e.dataTransfer.files);
+  }
+
+  function onZoneDragOver(e: React.DragEvent) {
+    // Only react to file drags from outside, not internal tile reordering.
+    if (dragIndex !== null) return;
+    if (Array.from(e.dataTransfer.types).includes("Files")) {
+      e.preventDefault();
+      setFileDragging(true);
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-3">
-      {/* Add by URL */}
+    <div
+      className="flex flex-col gap-3"
+      onDragOver={onZoneDragOver}
+      onDragLeave={(e) => {
+        if (e.currentTarget === e.target) setFileDragging(false);
+      }}
+      onDrop={onZoneDrop}
+    >
+      {/* Add by URL + upload */}
       <div className="flex gap-2">
         <Input
           value={url}
-          placeholder="https://… image URL"
+          placeholder="https://... image URL"
           inputMode="url"
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => {
@@ -114,7 +150,7 @@ export function ProductImageUploader({
           ref={inputRef}
           type="file"
           multiple
-          accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
+          accept={ACCEPT}
           className="hidden"
           onChange={(e) => {
             void uploadFiles(e.target.files);
@@ -137,19 +173,39 @@ export function ProductImageUploader({
       </div>
 
       {value.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed py-8 text-muted-foreground">
-          <ImageOff className="size-6" />
-          <p className="text-sm">No images yet. Paste a URL above.</p>
-        </div>
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className={cn(
+            "flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed py-10 text-muted-foreground transition-colors",
+            fileDragging
+              ? "border-primary bg-primary/5 text-primary"
+              : "hover:border-muted-foreground/50 hover:bg-muted/30"
+          )}
+        >
+          <ImageUp className="size-7" />
+          <p className="text-sm font-medium">
+            Drag &amp; drop images, or click to browse
+          </p>
+          <p className="text-xs">…or paste an image URL above</p>
+        </button>
       ) : (
-        <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
+        <ul
+          className={cn(
+            "grid grid-cols-3 gap-3 rounded-lg sm:grid-cols-4 md:grid-cols-5",
+            fileDragging && "ring-2 ring-primary ring-offset-2"
+          )}
+        >
           {value.map((src, i) => (
             <li
               key={src}
               draggable
               onDragStart={() => setDragIndex(i)}
               onDragOver={(e) => e.preventDefault()}
-              onDrop={() => handleDrop(i)}
+              onDrop={(e) => {
+                e.stopPropagation();
+                handleReorderDrop(i);
+              }}
               onDragEnd={() => setDragIndex(null)}
               className={cn(
                 "group relative aspect-square overflow-hidden rounded-lg border bg-muted",
@@ -160,6 +216,8 @@ export function ProductImageUploader({
               <img
                 src={src}
                 alt={`Product image ${i + 1}`}
+                loading="lazy"
+                decoding="async"
                 className="size-full object-cover"
               />
 

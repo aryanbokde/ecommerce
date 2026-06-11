@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Plus,
   ChevronUp,
@@ -9,11 +9,14 @@ import {
   Trash2,
   Loader2,
   FolderTree,
+  Search,
+  ImageIcon,
 } from "lucide-react";
 import { DashboardShell } from "@/components/admin/DashboardShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
@@ -25,6 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CategoryForm, type FlatCategory } from "@/components/admin/CategoryForm";
+import { cn } from "@/lib/utils";
 import { notifyError, notifySuccess } from "@/lib/notify";
 
 interface TreeRow {
@@ -66,10 +70,32 @@ function buildRows(cats: FlatCategory[]): TreeRow[] {
   return rows;
 }
 
+// Categories matching `q` plus all their ancestors (so the tree stays readable).
+function filterRows(rows: TreeRow[], cats: FlatCategory[], q: string): TreeRow[] {
+  const term = q.trim().toLowerCase();
+  if (!term) return rows;
+  const byId = new Map(cats.map((c) => [c.id, c]));
+  const keep = new Set<string>();
+  for (const c of cats) {
+    if (
+      c.name.toLowerCase().includes(term) ||
+      c.slug.toLowerCase().includes(term)
+    ) {
+      let cur: FlatCategory | undefined = c;
+      while (cur && !keep.has(cur.id)) {
+        keep.add(cur.id);
+        cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+      }
+    }
+  }
+  return rows.filter((r) => keep.has(r.cat.id));
+}
+
 export default function CategoriesPage() {
   const [cats, setCats] = useState<FlatCategory[] | null>(null);
   const [tick, setTick] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [formInitial, setFormInitial] = useState<FlatCategory | undefined>();
@@ -168,7 +194,24 @@ export default function CategoriesPage() {
     setFormOpen(true);
   }
 
-  const rows = cats ? buildRows(cats) : [];
+  const allRows = useMemo(() => (cats ? buildRows(cats) : []), [cats]);
+  const rows = useMemo(
+    () => filterRows(allRows, cats ?? [], search),
+    [allRows, cats, search]
+  );
+  const searching = search.trim() !== "";
+
+  // Header summary.
+  const summary = useMemo(() => {
+    const list = cats ?? [];
+    const idset = new Set(list.map((c) => c.id));
+    return {
+      total: list.length,
+      topLevel: list.filter((c) => parentKeyOf(c, idset) === null).length,
+      hidden: list.filter((c) => !c.isActive).length,
+      products: list.reduce((s, c) => s + c.productCount, 0),
+    };
+  }, [cats]);
 
   return (
     <DashboardShell
@@ -181,11 +224,32 @@ export default function CategoriesPage() {
         </Button>
       }
     >
+      {/* Summary chips */}
+      {cats !== null && cats.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+          <Chip label="Total" value={summary.total} />
+          <Chip label="Top-level" value={summary.topLevel} />
+          <Chip label="Hidden" value={summary.hidden} muted />
+          <Chip label="Products" value={summary.products} />
+          <div className="relative ml-auto w-full max-w-xs">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search categories…"
+              aria-label="Search categories"
+              className="h-9 pl-8"
+            />
+          </div>
+        </div>
+      )}
+
       <div className="rounded-lg border border-border">
         {cats === null ? (
           <div className="divide-y divide-border">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="flex items-center gap-3 px-3 py-3">
+                <Skeleton className="size-9 rounded-md" />
                 <Skeleton className="h-4 w-40" />
                 <Skeleton className="ml-auto h-5 w-20" />
               </div>
@@ -195,7 +259,9 @@ export default function CategoriesPage() {
           <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
             <FolderTree className="size-8 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              No categories yet. Add your first one.
+              {searching
+                ? "No categories match your search."
+                : "No categories yet. Add your first one."}
             </p>
           </div>
         ) : (
@@ -203,14 +269,42 @@ export default function CategoriesPage() {
             {rows.map(({ cat, depth, isFirst, isLast }) => (
               <li
                 key={cat.id}
-                className="flex items-center gap-3 px-3 py-2.5"
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-muted/30",
+                  !cat.isActive && "bg-muted/20"
+                )}
                 style={{ paddingLeft: 12 + depth * 22 }}
               >
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-2 truncate font-medium text-foreground">
-                    {depth > 0 && (
-                      <span className="text-muted-foreground/60">└</span>
+                {depth > 0 && (
+                  <span className="-ml-2 text-muted-foreground/50">└</span>
+                )}
+
+                {/* Thumbnail */}
+                {cat.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={cat.image}
+                    alt={cat.name}
+                    loading="lazy"
+                    decoding="async"
+                    className={cn(
+                      "size-9 shrink-0 rounded-md object-cover ring-1 ring-border",
+                      !cat.isActive && "opacity-50 grayscale"
                     )}
+                  />
+                ) : (
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                    <ImageIcon className="size-4" />
+                  </span>
+                )}
+
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={cn(
+                      "flex items-center gap-2 truncate font-medium",
+                      cat.isActive ? "text-foreground" : "text-muted-foreground"
+                    )}
+                  >
                     {cat.name}
                     {!cat.isActive && (
                       <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
@@ -220,6 +314,7 @@ export default function CategoriesPage() {
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
                     /{cat.slug}
+                    {cat.description ? ` · ${cat.description}` : ""}
                   </p>
                 </div>
 
@@ -234,26 +329,29 @@ export default function CategoriesPage() {
                   aria-label={`Toggle ${cat.name} active`}
                 />
 
-                <div className="flex items-center">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Move up"
-                    disabled={isFirst || busy}
-                    onClick={() => move(cat, "up")}
-                  >
-                    <ChevronUp className="size-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Move down"
-                    disabled={isLast || busy}
-                    onClick={() => move(cat, "down")}
-                  >
-                    <ChevronDown className="size-4" />
-                  </Button>
-                </div>
+                {/* Reorder is ambiguous while filtering — hide it. */}
+                {!searching && (
+                  <div className="flex items-center">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Move up"
+                      disabled={isFirst || busy}
+                      onClick={() => move(cat, "up")}
+                    >
+                      <ChevronUp className="size-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Move down"
+                      disabled={isLast || busy}
+                      onClick={() => move(cat, "down")}
+                    >
+                      <ChevronDown className="size-4" />
+                    </Button>
+                  </div>
+                )}
 
                 <Button
                   variant="ghost"
@@ -306,9 +404,7 @@ export default function CategoriesPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>
-              Cancel
-            </DialogClose>
+            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
             <Button variant="destructive" disabled={busy} onClick={confirmDelete}>
               {busy && <Loader2 className="size-4 animate-spin" />}
               Delete
@@ -317,5 +413,29 @@ export default function CategoriesPage() {
         </DialogContent>
       </Dialog>
     </DashboardShell>
+  );
+}
+
+function Chip({
+  label,
+  value,
+  muted = false,
+}: {
+  label: string;
+  value: number;
+  muted?: boolean;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1">
+      <span className="text-muted-foreground">{label}</span>
+      <span
+        className={cn(
+          "font-semibold tabular-nums",
+          muted && value > 0 && "text-amber-600 dark:text-amber-400"
+        )}
+      >
+        {value}
+      </span>
+    </span>
   );
 }

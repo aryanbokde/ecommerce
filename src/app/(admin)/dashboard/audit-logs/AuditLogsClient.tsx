@@ -1,10 +1,14 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { formatDistanceToNow, format } from "date-fns";
-import { ChevronDown, ChevronRight, ScrollText } from "lucide-react";
+import { ChevronDown, ChevronRight, ScrollText, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { exportToCsv } from "@/lib/export-csv";
 import {
   Table,
   TableBody,
@@ -40,6 +44,7 @@ export interface AuditLogEntry {
   metadata: unknown;
   status: string;
   createdAt: Date | string;
+  user: { id: string; name: string | null; email: string } | null;
 }
 
 export interface AuditLogsResult {
@@ -95,6 +100,16 @@ function prettyAction(action: string) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+const auditCsvRow = (l: AuditLogEntry) => ({
+  Action: l.action,
+  Status: l.status,
+  User: l.user?.name ?? "",
+  Email: l.user?.email ?? "",
+  "User ID": l.userId ?? "",
+  IP: l.ipAddress ?? "",
+  Time: new Date(l.createdAt).toISOString(),
+});
+
 function StatusBadge({ status }: { status: string }) {
   if (status === "success")
     return (
@@ -117,11 +132,48 @@ export default function AuditLogsClient({ logsResult }: Props) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [, startTransition] = useTransition();
+
+  const pageIds = logsResult.items.map((l) => l.id);
+  const allSelected =
+    pageIds.length > 0 && pageIds.every((id) => selected.has(id));
+  const someSelected = pageIds.some((id) => selected.has(id));
+
+  function toggleAll() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allSelected) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+  }
+
+  function toggleRow(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  // Export the selected entries (those loaded on this page) to CSV. Audit logs
+  // are immutable — export is the only bulk action (no delete).
+  function exportSelected() {
+    const rows = logsResult.items.filter((l) => selected.has(l.id));
+    if (rows.length === 0) return;
+    exportToCsv(
+      `audit-logs-${new Date().toISOString().slice(0, 10)}`,
+      rows.map(auditCsvRow)
+    );
+  }
 
   const currentAction = searchParams.get("action") ?? "all";
   const currentStatus = searchParams.get("status") ?? "all";
   const currentLimit = searchParams.get("limit") ?? "20";
+  const currentFrom = searchParams.get("from") ?? "";
+  const currentTo = searchParams.get("to") ?? "";
   const currentPage = logsResult.page;
   const totalPages = logsResult.totalPages;
   const PER_PAGE_OPTIONS = [10, 20, 50, 100] as const;
@@ -225,20 +277,72 @@ export default function AuditLogsClient({ logsResult }: Props) {
           </Select>
         </div>
 
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">From:</span>
+          <input
+            type="date"
+            value={currentFrom}
+            max={currentTo || undefined}
+            aria-label="From date"
+            onChange={(e) =>
+              handleFilterChange("from", e.target.value || "all")
+            }
+            className="h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          />
+          <span className="text-muted-foreground">–</span>
+          <input
+            type="date"
+            value={currentTo}
+            min={currentFrom || undefined}
+            aria-label="To date"
+            onChange={(e) => handleFilterChange("to", e.target.value || "all")}
+            className="h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          />
+        </div>
+
         <span className="ml-auto text-sm text-muted-foreground">
           {logsResult.total} total
         </span>
       </div>
+
+      {/* Bulk bar (export only — audit logs are immutable) */}
+      {selected.size > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
+          <span className="text-sm font-medium">{selected.size} selected</span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={exportSelected}>
+              <Download className="size-4" />
+              Export CSV
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelected(new Set())}
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="rounded-xl ring-1 ring-foreground/10 overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-8">
+                <Checkbox
+                  aria-label="Select all on page"
+                  checked={allSelected}
+                  indeterminate={someSelected && !allSelected}
+                  onCheckedChange={toggleAll}
+                  disabled={pageIds.length === 0}
+                />
+              </TableHead>
               <TableHead className="w-6" />
               <TableHead className="w-48">Action</TableHead>
               <TableHead className="w-28">Status</TableHead>
-              <TableHead className="w-28">User</TableHead>
+              <TableHead className="w-48">User</TableHead>
               <TableHead className="w-32">IP</TableHead>
               <TableHead className="w-32">Time</TableHead>
             </TableRow>
@@ -246,7 +350,7 @@ export default function AuditLogsClient({ logsResult }: Props) {
           <TableBody>
             {logsResult.items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-16 text-center">
+                <TableCell colSpan={7} className="py-16 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <ScrollText className="size-10 text-muted-foreground/50" />
                     <p className="font-medium">No audit entries</p>
@@ -261,10 +365,22 @@ export default function AuditLogsClient({ logsResult }: Props) {
                 <React.Fragment key={log.id}>
                   <TableRow
                     className="cursor-pointer select-none"
+                    data-selected={selected.has(log.id) || undefined}
                     onClick={() =>
                       setExpandedId(expandedId === log.id ? null : log.id)
                     }
                   >
+                    <TableCell
+                      className="pr-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Checkbox
+                        aria-label="Select row"
+                        checked={selected.has(log.id)}
+                        onCheckedChange={() => toggleRow(log.id)}
+                      />
+                    </TableCell>
+
                     <TableCell className="pr-0">
                       {expandedId === log.id ? (
                         <ChevronDown className="size-3.5 text-muted-foreground" />
@@ -283,10 +399,22 @@ export default function AuditLogsClient({ logsResult }: Props) {
                       <StatusBadge status={log.status} />
                     </TableCell>
 
-                    <TableCell>
-                      <span className="font-mono text-xs">
-                        {log.userId ? log.userId.slice(0, 8) + "…" : "—"}
-                      </span>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {log.user ? (
+                        <Link
+                          href={`/dashboard/users/${log.user.id}`}
+                          className="block min-w-0 hover:underline"
+                        >
+                          <span className="block truncate text-sm font-medium text-foreground">
+                            {log.user.name ?? "—"}
+                          </span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {log.user.email}
+                          </span>
+                        </Link>
+                      ) : (
+                        <span className="text-muted-foreground">System</span>
+                      )}
                     </TableCell>
 
                     <TableCell>
@@ -313,7 +441,7 @@ export default function AuditLogsClient({ logsResult }: Props) {
 
                   {expandedId === log.id && (
                     <TableRow>
-                      <TableCell colSpan={6} className="bg-muted/40 py-4">
+                      <TableCell colSpan={7} className="bg-muted/40 py-4">
                         <div className="space-y-3 px-2">
                           <div className="grid grid-cols-1 gap-1 text-xs sm:grid-cols-2">
                             <p className="text-muted-foreground">

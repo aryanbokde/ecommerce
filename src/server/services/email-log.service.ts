@@ -61,3 +61,50 @@ export async function getEmailLogs(filters: EmailLogFilters = {}) {
 
   return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
 }
+
+export interface TemplateDeliveryStat {
+  sent: number;
+  failed: number;
+  skipped: number;
+  total: number;
+  lastSentAt: string | null;
+}
+
+/**
+ * Per-template delivery rollup for the email-templates admin page: how many
+ * sends succeeded / failed / were skipped, plus when each last went out.
+ */
+export async function getDeliveryStatsByTemplate(): Promise<
+  Record<string, TemplateDeliveryStat>
+> {
+  const [byStatus, lastSent] = await Promise.all([
+    prisma.emailLog.groupBy({
+      by: ["templateKey", "status"],
+      _count: { _all: true },
+    }),
+    prisma.emailLog.groupBy({
+      by: ["templateKey"],
+      where: { status: "sent" },
+      _max: { createdAt: true },
+    }),
+  ]);
+
+  const map: Record<string, TemplateDeliveryStat> = {};
+  const ensure = (k: string) =>
+    (map[k] ??= { sent: 0, failed: 0, skipped: 0, total: 0, lastSentAt: null });
+
+  for (const row of byStatus) {
+    const s = ensure(row.templateKey);
+    const n = row._count._all;
+    s.total += n;
+    if (row.status === "sent") s.sent += n;
+    else if (row.status === "failed") s.failed += n;
+    else if (row.status === "skipped") s.skipped += n;
+  }
+  for (const row of lastSent) {
+    ensure(row.templateKey).lastSentAt = row._max.createdAt
+      ? row._max.createdAt.toISOString()
+      : null;
+  }
+  return map;
+}

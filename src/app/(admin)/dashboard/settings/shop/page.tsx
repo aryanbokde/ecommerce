@@ -108,8 +108,23 @@ function emptyForm(): Record<string, string> {
 
 export default function ShopSettingsPage() {
   const [form, setForm] = useState<Record<string, string>>(emptyForm);
+  // Snapshot of the last-saved/loaded values, to detect unsaved edits.
+  const [initial, setInitial] = useState<Record<string, string>>(emptyForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initial);
+
+  // Warn before leaving with unsaved edits.
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
 
   const load = useCallback(async () => {
     try {
@@ -117,12 +132,16 @@ export default function ShopSettingsPage() {
       const json = await res.json();
       if (json?.data) {
         const next = emptyForm();
-        for (const section of Object.values(json.data) as Record<string, string>[]) {
+        for (const section of Object.values(json.data) as Record<string, unknown>[]) {
           for (const [k, v] of Object.entries(section)) {
-            if (k in next) next[k] = v;
+            // Coerce to a safe string — drop legacy/corrupt non-string values
+            // (e.g. "[object Object]") so fields never render that garbage.
+            if (k in next)
+              next[k] = typeof v === "string" && v !== "[object Object]" ? v : "";
           }
         }
         setForm(next);
+        setInitial(next);
       }
     } catch {
       notifyError("Couldn't load settings");
@@ -162,6 +181,8 @@ export default function ShopSettingsPage() {
         body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error();
+      // Mark pristine so the dirty indicator + leave guard reset.
+      setInitial(form);
       notifySuccess("Settings saved", "Your store configuration is updated.");
     } catch {
       notifyError("Couldn't save settings", "Please try again.");
@@ -175,10 +196,28 @@ export default function ShopSettingsPage() {
       title="Store Settings"
       description="Branding, commerce, social, and SEO — used across the storefront and emails"
       action={
-        <Button onClick={handleSave} disabled={saving || loading}>
-          {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-          Save changes
-        </Button>
+        <div className="flex items-center gap-2">
+          {isDirty && !loading && (
+            <span className="hidden text-sm text-muted-foreground sm:inline">
+              Unsaved changes
+            </span>
+          )}
+          <Button
+            variant="outline"
+            onClick={() => setForm(initial)}
+            disabled={saving || loading || !isDirty}
+          >
+            Discard
+          </Button>
+          <Button onClick={handleSave} disabled={saving || loading || !isDirty}>
+            {saving ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Save className="size-4" />
+            )}
+            Save changes
+          </Button>
+        </div>
       }
     >
       {loading ? (
@@ -188,7 +227,7 @@ export default function ShopSettingsPage() {
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
           {SECTIONS.map((section) => (
-            <Card key={section.group} size="sm">
+            <Card key={section.title} size="sm">
               <CardHeader>
                 <CardTitle className="text-base">{section.title}</CardTitle>
               </CardHeader>

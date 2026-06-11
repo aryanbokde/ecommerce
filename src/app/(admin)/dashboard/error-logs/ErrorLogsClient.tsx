@@ -159,6 +159,7 @@ export default function ErrorLogsClient({ logsResult }: Props) {
       const res = await fetch("/api/admin/error-logs", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ ids: [...selected] }),
       });
       if (!res.ok) throw new Error("Failed");
@@ -182,6 +183,7 @@ export default function ErrorLogsClient({ logsResult }: Props) {
       const res = await fetch("/api/admin/error-logs", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ ids: [...selected], resolved }),
       });
       if (!res.ok) throw new Error("Failed");
@@ -226,6 +228,7 @@ export default function ErrorLogsClient({ logsResult }: Props) {
     void fetch(`/api/admin/error-logs/${log.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ seen: true }),
     }).then((res) => {
       if (res.ok) window.dispatchEvent(new Event(ADMIN_BADGES_REFRESH));
@@ -244,6 +247,7 @@ export default function ErrorLogsClient({ logsResult }: Props) {
     try {
       const res = await fetch(`/api/admin/error-logs/${id}`, {
         method: "PATCH",
+        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to resolve");
       toast.success("Error log marked as resolved");
@@ -262,9 +266,18 @@ export default function ErrorLogsClient({ logsResult }: Props) {
     try {
       const res = await fetch(`/api/admin/error-logs/${id}`, {
         method: "DELETE",
+        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to delete");
       toast.success("Error log deleted");
+      // Drop the deleted id from the selection so the "N selected" count stays
+      // accurate after the row disappears.
+      setSelected((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
       window.dispatchEvent(new Event(ADMIN_BADGES_REFRESH));
       router.refresh();
     } catch {

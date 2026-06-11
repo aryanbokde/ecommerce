@@ -1,10 +1,8 @@
 import { cache } from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
 import {
-  ArrowLeft,
   ShoppingBag,
   MapPin,
   CreditCard,
@@ -23,6 +21,7 @@ import { CopyField } from "@/components/admin/CopyField";
 import { RefundPanel } from "@/components/admin/RefundPanel";
 import { ReturnPanel } from "@/components/admin/ReturnPanel";
 import { CodPaymentPanel } from "@/components/admin/CodPaymentPanel";
+import { OrderNotesPanel } from "@/components/admin/OrderNotesPanel";
 
 // Dedupe the DB read between generateMetadata and the page (same request).
 const loadOrder = cache(async (id: string) => {
@@ -102,6 +101,19 @@ export default async function AdminOrderDetailPage({
       ])
     : [null, 0];
 
+  // Internal staff notes (newest first) — staff-only, not shown to the customer.
+  const supportNotes = await prisma.supportNote.findMany({
+    where: { orderId: order.id },
+    orderBy: { createdAt: "desc" },
+    include: { author: { select: { id: true, name: true } } },
+  });
+  const notes = supportNotes.map((n) => ({
+    id: n.id,
+    note: n.note,
+    createdAt: n.createdAt.toISOString(),
+    author: n.author,
+  }));
+
   const placedOn = new Date(order.createdAt).toLocaleString("en-IN", {
     year: "numeric",
     month: "long",
@@ -119,15 +131,7 @@ export default async function AdminOrderDetailPage({
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <Link
-        href="/dashboard/orders"
-        className="no-print inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        Orders
-      </Link>
-
-      <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
             Order {order.orderNumber}
@@ -255,6 +259,11 @@ export default async function AdminOrderDetailPage({
                 orderId={order.id}
                 currentStatus={order.status}
               />
+            </div>
+
+            {/* Internal staff notes */}
+            <div className="no-print">
+              <OrderNotesPanel orderId={order.id} initialNotes={notes} />
             </div>
 
             {/* Customer */}

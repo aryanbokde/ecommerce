@@ -1,12 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Pencil, Eye, Send, Loader2, Mail } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Pencil,
+  Eye,
+  Send,
+  Loader2,
+  Mail,
+  Search,
+  Power,
+  PowerOff,
+  CheckCircle2,
+  AlertTriangle,
+} from "lucide-react";
 import { DashboardShell } from "@/components/admin/DashboardShell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
@@ -24,16 +36,39 @@ import {
 type Category = "auth" | "order" | "admin";
 type Grouped = Record<Category, EmailTemplateDTO[]>;
 
+interface DeliveryStat {
+  sent: number;
+  failed: number;
+  skipped: number;
+  total: number;
+  lastSentAt: string | null;
+}
+type StatsMap = Record<string, DeliveryStat>;
+
 const TABS: { value: Category; label: string }[] = [
   { value: "auth", label: "Auth" },
   { value: "order", label: "Order" },
   { value: "admin", label: "Admin" },
 ];
 
+// Compact "x ago" for the last-sent timestamp.
+function timeAgo(iso: string | null): string | null {
+  if (!iso) return null;
+  const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.round(h / 24)}d ago`;
+}
+
 export default function EmailTemplatesPage() {
   const [data, setData] = useState<Grouped>({ auth: [], order: [], admin: [] });
+  const [stats, setStats] = useState<StatsMap>({});
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Category>("auth");
+  const [search, setSearch] = useState("");
+  const [bulkCat, setBulkCat] = useState<Category | null>(null);
 
   const [editing, setEditing] = useState<EmailTemplateDTO | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -53,6 +88,7 @@ export default function EmailTemplatesPage() {
       });
       const json = await res.json();
       if (json?.data) setData(json.data as Grouped);
+      if (json?.stats) setStats(json.stats as StatsMap);
     } catch {
       notifyError("Couldn't load templates");
     } finally {
@@ -88,6 +124,40 @@ export default function EmailTemplatesPage() {
       notifyError("Couldn't update template");
     } finally {
       setBusyKey(null);
+    }
+  }
+
+  // Enable/disable every template in a category at once (parallel PATCH).
+  async function bulkSetEnabled(category: Category, enabled: boolean) {
+    const list = data[category];
+    if (list.length === 0) return;
+    setBulkCat(category);
+    setData((prev) => ({
+      ...prev,
+      [category]: prev[category].map((t) => ({ ...t, enabled })),
+    }));
+    try {
+      const results = await Promise.all(
+        list.map((t) =>
+          fetch(`/api/admin/email-templates/${t.key}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ enabled }),
+          }).then((r) => r.ok)
+        )
+      );
+      const ok = results.filter(Boolean).length;
+      if (ok > 0)
+        notifySuccess(
+          `${ok} template${ok === 1 ? "" : "s"} ${enabled ? "enabled" : "disabled"}`
+        );
+      if (ok < list.length) {
+        notifyError("Some updates failed");
+        void load();
+      }
+    } finally {
+      setBulkCat(null);
     }
   }
 
@@ -132,6 +202,25 @@ export default function EmailTemplatesPage() {
     setEditorOpen(true);
   }
 
+  const summary = useMemo(() => {
+    const all = [...data.auth, ...data.order, ...data.admin];
+    return {
+      total: all.length,
+      enabled: all.filter((t) => t.enabled).length,
+      disabled: all.filter((t) => !t.enabled).length,
+    };
+  }, [data]);
+
+  const q = search.trim().toLowerCase();
+  const visible = (cat: Category) =>
+    data[cat].filter(
+      (t) =>
+        !q ||
+        t.name.toLowerCase().includes(q) ||
+        t.subject.toLowerCase().includes(q) ||
+        t.key.toLowerCase().includes(q)
+    );
+
   return (
     <DashboardShell
       title="Email Templates"
@@ -142,41 +231,94 @@ export default function EmailTemplatesPage() {
           <Loader2 className="size-5 animate-spin" />
         </div>
       ) : (
-        <Tabs
-          value={tab}
-          onValueChange={(v) => setTab(v as Category)}
-          className="w-full"
-        >
-          <TabsList>
-            {TABS.map((t) => (
-              <TabsTrigger key={t.value} value={t.value}>
-                {t.label}
-                <Badge variant="secondary" className="ml-1.5 tabular-nums">
-                  {data[t.value].length}
-                </Badge>
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        <div className="space-y-4">
+          {/* Summary chips + search */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Chip label="Templates" value={summary.total} />
+            <Chip label="Enabled" value={summary.enabled} tone="emerald" />
+            <Chip label="Disabled" value={summary.disabled} tone="muted" />
+            <div className="relative ml-auto w-full max-w-xs">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search templates…"
+                aria-label="Search templates"
+                className="h-9 pl-8"
+              />
+            </div>
+          </div>
 
-          {TABS.map((t) => (
-            <TabsContent key={t.value} value={t.value} className="mt-4">
-              <div className="space-y-3">
-                {data[t.value].map((tpl) => (
-                  <TemplateCard
-                    key={tpl.key}
-                    tpl={tpl}
-                    busy={busyKey === tpl.key}
-                    testing={testingKey === tpl.key}
-                    onToggle={(enabled) => handleToggle(tpl, enabled)}
-                    onEdit={() => openEditor(tpl)}
-                    onPreview={() => openPreview(tpl)}
-                    onTest={() => handleTest(tpl)}
-                  />
-                ))}
-              </div>
-            </TabsContent>
-          ))}
-        </Tabs>
+          <Tabs
+            value={tab}
+            onValueChange={(v) => setTab(v as Category)}
+            className="w-full"
+          >
+            <TabsList>
+              {TABS.map((t) => (
+                <TabsTrigger key={t.value} value={t.value}>
+                  {t.label}
+                  <Badge variant="secondary" className="ml-1.5 tabular-nums">
+                    {data[t.value].length}
+                  </Badge>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            {TABS.map((t) => {
+              const list = visible(t.value);
+              return (
+                <TabsContent key={t.value} value={t.value} className="mt-4">
+                  {/* Per-category bulk actions */}
+                  <div className="mb-3 flex items-center justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={bulkCat === t.value}
+                      onClick={() => bulkSetEnabled(t.value, true)}
+                    >
+                      <Power className="size-3.5" />
+                      Enable all
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={bulkCat === t.value}
+                      onClick={() => bulkSetEnabled(t.value, false)}
+                    >
+                      <PowerOff className="size-3.5" />
+                      Disable all
+                    </Button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {list.length === 0 ? (
+                      <p className="py-10 text-center text-sm text-muted-foreground">
+                        {q
+                          ? "No templates match your search."
+                          : "No templates in this category."}
+                      </p>
+                    ) : (
+                      list.map((tpl) => (
+                        <TemplateCard
+                          key={tpl.key}
+                          tpl={tpl}
+                          stat={stats[tpl.key]}
+                          busy={busyKey === tpl.key}
+                          testing={testingKey === tpl.key}
+                          onToggle={(enabled) => handleToggle(tpl, enabled)}
+                          onEdit={() => openEditor(tpl)}
+                          onPreview={() => openPreview(tpl)}
+                          onTest={() => handleTest(tpl)}
+                        />
+                      ))
+                    )}
+                  </div>
+                </TabsContent>
+              );
+            })}
+          </Tabs>
+        </div>
       )}
 
       {/* Editor dialog with live preview (remounts per open) */}
@@ -219,6 +361,7 @@ export default function EmailTemplatesPage() {
 // ── Template card ─────────────────────────────────────────────────────────────
 function TemplateCard({
   tpl,
+  stat,
   busy,
   testing,
   onToggle,
@@ -227,6 +370,7 @@ function TemplateCard({
   onTest,
 }: {
   tpl: EmailTemplateDTO;
+  stat?: DeliveryStat;
   busy: boolean;
   testing: boolean;
   onToggle: (enabled: boolean) => void;
@@ -234,6 +378,7 @@ function TemplateCard({
   onPreview: () => void;
   onTest: () => void;
 }) {
+  const lastSent = timeAgo(stat?.lastSentAt ?? null);
   return (
     <Card
       size="sm"
@@ -258,6 +403,23 @@ function TemplateCard({
           <p className="truncate text-sm text-muted-foreground">
             {tpl.subject}
           </p>
+          {/* Delivery stats */}
+          {stat && stat.total > 0 && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <CheckCircle2 className="size-3 text-emerald-500" />
+                {stat.sent} sent
+              </span>
+              {stat.failed > 0 && (
+                <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400">
+                  <AlertTriangle className="size-3" />
+                  {stat.failed} failed
+                </span>
+              )}
+              {stat.skipped > 0 && <span>{stat.skipped} skipped</span>}
+              {lastSent && <span>· last {lastSent}</span>}
+            </div>
+          )}
         </div>
       </div>
 
@@ -291,6 +453,31 @@ function TemplateCard({
         </Button>
       </div>
     </Card>
+  );
+}
+
+function Chip({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: number;
+  tone?: "default" | "emerald" | "muted";
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span
+        className={cn(
+          "font-semibold tabular-nums",
+          tone === "emerald" && value > 0 && "text-emerald-600 dark:text-emerald-400",
+          tone === "muted" && value > 0 && "text-muted-foreground"
+        )}
+      >
+        {value}
+      </span>
+    </span>
   );
 }
 

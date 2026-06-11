@@ -190,6 +190,7 @@ async function clean() {
   console.log("\n🧹 Cleaning existing data…");
   const steps: [string, () => Promise<unknown>][] = [
     ["reviews", () => prisma.review.deleteMany()],
+    ["returns", () => prisma.return.deleteMany()],
     ["order_items", () => prisma.orderItem.deleteMany()],
     ["orders", () => prisma.order.deleteMany()],
     ["cart_items", () => prisma.cartItem.deleteMany()],
@@ -252,6 +253,9 @@ async function seedUsers() {
         isActive: spec.isActive,
         banned: spec.banned,
         banReason: spec.banReason,
+        // Spread signups across the last ~40 days so the dashboard's
+        // "new customers" trend has a realistic shape.
+        createdAt: faker.date.recent({ days: 40 }),
       },
     });
     allUsers.push(u);
@@ -510,6 +514,20 @@ async function seedOrders(
     } while (usedNumbers.has(orderNumber));
     usedNumbers.add(orderNumber);
 
+    const createdAt = faker.date.recent({ days: 90 }); // spread for revenue charts
+    // Delivered orders carry a deliveredAt (created + 12–120h, capped at now) so
+    // the dashboard's avg-fulfillment metric and return window have real data.
+    const deliveredAt =
+      status === "delivered"
+        ? new Date(
+            Math.min(
+              Date.now(),
+              createdAt.getTime() +
+                faker.number.int({ min: 12, max: 120 }) * 3_600_000
+            )
+          )
+        : null;
+
     await prisma.order.create({
       data: {
         orderNumber,
@@ -530,7 +548,12 @@ async function seedOrders(
         // A brand-new (still "pending") order hasn't been opened by an admin yet
         // → unseen (drives the new-orders badge); anything further along is seen.
         seenByAdmin: status !== "pending",
-        createdAt: faker.date.recent({ days: 90 }), // spread for revenue charts
+        deliveredAt,
+        trackingNumber:
+          status === "shipped" || status === "delivered"
+            ? `TRK${faker.string.numeric(10)}`
+            : null,
+        createdAt,
         items: { create: items },
       },
     });
@@ -539,6 +562,47 @@ async function seedOrders(
 
   console.log(`✓ Seeded 40 orders (${itemCount} order items)`);
   return itemCount;
+}
+
+// ── 7b. RETURNS (on delivered orders) ───────────────────────────────────────────
+async function seedReturns() {
+  const delivered = await prisma.order.findMany({
+    where: { status: "delivered" },
+    select: { id: true, userId: true },
+  });
+  const chosen = faker.helpers.arrayElements(
+    delivered,
+    Math.ceil(delivered.length * 0.25)
+  );
+  let n = 0;
+  for (const o of chosen) {
+    const status = faker.helpers.weightedArrayElement([
+      { weight: 40, value: "requested" },
+      { weight: 25, value: "approved" },
+      { weight: 20, value: "completed" },
+      { weight: 15, value: "rejected" },
+    ]);
+    await prisma.return.create({
+      data: {
+        orderId: o.id,
+        userId: o.userId,
+        reason: pick([
+          "Wrong size",
+          "Damaged on arrival",
+          "Not as described",
+          "Changed my mind",
+          "Defective item",
+        ]),
+        status,
+        restocked: status === "approved" || status === "completed",
+        seenByAdmin: status !== "requested",
+        adminNote: status === "rejected" ? "Outside the return window." : null,
+        resolvedAt: status === "requested" ? null : new Date(),
+      },
+    });
+    n++;
+  }
+  console.log(`✓ Seeded ${n} returns`);
 }
 
 // ── 8. CARTS + CART ITEMS ───────────────────────────────────────────────────────
@@ -676,6 +740,7 @@ async function main() {
 
   await seedReviews(products, customers);
   await seedOrders(customers, addrByUser, products);
+  await seedReturns();
   await seedCarts(customers, products);
   await seedAuditLogs(users);
   await seedErrorLogs();
@@ -693,6 +758,7 @@ async function main() {
     orderItems: await prisma.orderItem.count(),
     carts: await prisma.cart.count(),
     cartItems: await prisma.cartItem.count(),
+    returns: await prisma.return.count(),
     auditLogs: await prisma.auditLog.count(),
     errorLogs: await prisma.errorLog.count(),
     storeSettings: await prisma.storeSetting.count(),

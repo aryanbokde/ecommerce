@@ -123,6 +123,9 @@ export async function getAuditLogs(filters: AuditLogFilters = {}) {
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * limit,
       take: limit,
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+      },
     }),
     prisma.auditLog.count({ where }),
   ]);

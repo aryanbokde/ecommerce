@@ -79,6 +79,7 @@ export default async function ManagerDashboardPage() {
             icon={ClipboardList}
             accent="blue"
             trendLabel="pending · confirmed · processing"
+            href="/shop-manager/orders"
           />
           <StatCard
             title="Low Stock"
@@ -86,6 +87,7 @@ export default async function ManagerDashboardPage() {
             icon={AlertTriangle}
             accent="amber"
             trendLabel="at or below threshold"
+            href="/shop-manager/low-stock"
           />
           <StatCard
             title="Out of Stock"
@@ -93,6 +95,7 @@ export default async function ManagerDashboardPage() {
             icon={PackageX}
             accent="rose"
             trendLabel="needs restock"
+            href="/shop-manager/low-stock"
           />
           <StatCard
             title="Shipped Today"
@@ -100,6 +103,7 @@ export default async function ManagerDashboardPage() {
             icon={Truck}
             accent="emerald"
             trendLabel={`${stats.unitsSoldToday} units sold today`}
+            href="/shop-manager/orders"
           />
         </div>
 
@@ -132,12 +136,14 @@ export default async function ManagerDashboardPage() {
                         key={p.id}
                         className="flex items-center gap-3 px-4 py-2.5"
                       >
-                        <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">
+                        <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted ring-1 ring-border">
                           {src ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={src}
                               alt=""
+                              loading="lazy"
+                              decoding="async"
                               className="size-full object-cover"
                             />
                           ) : (
@@ -223,6 +229,47 @@ export default async function ManagerDashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Top movers (last 30 days) — fast sellers, with current stock */}
+        {stats.topMovingProducts.length > 0 && (
+          <Card>
+            <CardHeader className="flex-row items-center justify-between">
+              <CardTitle>Top movers</CardTitle>
+              <span className="text-xs text-muted-foreground">last 30 days</span>
+            </CardHeader>
+            <CardContent>
+              <ol className="space-y-3">
+                {stats.topMovingProducts.map((p, i) => (
+                  <li key={p.id} className="flex items-center gap-3">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold tabular-nums text-muted-foreground">
+                      {i + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/shop-manager/products/${p.id}/edit`}
+                        className="block truncate text-sm font-medium text-foreground hover:underline"
+                      >
+                        {p.name}
+                      </Link>
+                      <p className="text-xs text-muted-foreground">
+                        {p.unitsSold} sold
+                      </p>
+                    </div>
+                    {p.stock === 0 ? (
+                      <Badge variant="destructive" className="h-5 px-1.5">
+                        Out of stock
+                      </Badge>
+                    ) : (
+                      <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+                        {p.stock} in stock
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardShell>
   );

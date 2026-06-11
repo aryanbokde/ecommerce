@@ -49,7 +49,14 @@ function initials(name?: string | null): string {
     .toUpperCase();
 }
 
+// cuid/uuid-style id segments (e.g. /users/cmq73wx0f0003…) shouldn't show as a
+// raw token in the breadcrumb — label them "Details" instead.
+function looksLikeId(segment: string): boolean {
+  return segment.length >= 20 && /^[a-z0-9]+$/i.test(segment);
+}
+
 function titleize(segment: string): string {
+  if (looksLikeId(segment)) return "Details";
   return segment.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 

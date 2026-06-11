@@ -7,6 +7,7 @@ import { Download, Eye, Loader2 } from "lucide-react";
 import { DashboardShell } from "@/components/admin/DashboardShell";
 import { DataTable, type Column } from "@/components/admin/DataTable";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -91,6 +92,29 @@ const fmtDate = (iso: string) =>
     year: "numeric",
   });
 
+const toCsvRow = (o: AdminOrder) => ({
+  "Order #": o.orderNumber,
+  Customer: o.user?.name ?? "",
+  Email: o.user?.email ?? "",
+  Items: o.items.length,
+  Total: Number(o.total).toFixed(2),
+  Payment: o.paymentStatus,
+  Status: o.status,
+  Date: new Date(o.createdAt).toISOString(),
+});
+
+function initials(value: string): string {
+  return (
+    value
+      .trim()
+      .split(/[\s@.]+/)
+      .map((w) => w[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "?"
+  );
+}
+
 export default function OrdersPage() {
   return (
     <Suspense fallback={null}>
@@ -117,9 +141,11 @@ function OrdersPageInner() {
     };
   });
   const [search, setSearch] = useState("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [result, setResult] = useState<{
     key: string;
     orders: AdminOrder[];
+    total: number;
     page: number;
     totalPages: number;
   } | null>(null);
@@ -147,13 +173,14 @@ function OrdersPageInner() {
         setResult({
           key,
           orders: d.orders ?? [],
+          total: d.total ?? 0,
           page: d.page ?? 1,
           totalPages: d.totalPages ?? 1,
         });
       })
       .catch(() => {
         if (!ctrl.signal.aborted)
-          setResult({ key, orders: [], page: 1, totalPages: 1 });
+          setResult({ key, orders: [], total: 0, page: 1, totalPages: 1 });
       });
     return () => ctrl.abort();
   }, [server, key]);
@@ -210,16 +237,7 @@ function OrdersPageInner() {
         return;
       }
 
-      const rows = matched.map((o) => ({
-        "Order #": o.orderNumber,
-        Customer: o.user?.name ?? "",
-        Email: o.user?.email ?? "",
-        Items: o.items.length,
-        Total: Number(o.total).toFixed(2),
-        Payment: o.paymentStatus,
-        Status: o.status,
-        Date: new Date(o.createdAt).toISOString(),
-      }));
+      const rows = matched.map(toCsvRow);
       const range =
         server.from || server.to
           ? `_${server.from || "start"}_to_${server.to || "now"}`
@@ -235,7 +253,34 @@ function OrdersPageInner() {
     }
   }
 
+  // Export just the selected rows (those loaded on the current page) to CSV.
+  function exportSelected(ids: string[]) {
+    const set = new Set(ids);
+    const matched = (result?.orders ?? []).filter((o) => set.has(o.id));
+    if (matched.length === 0) {
+      notifyError("Nothing to export", "Select orders on this page first.");
+      return;
+    }
+    exportToCsv(
+      `orders-selected-${new Date().toISOString().slice(0, 10)}`,
+      matched.map(toCsvRow)
+    );
+    setSelectedIds([]);
+  }
+
   const columns: Column<AdminOrder>[] = [
+    {
+      key: "avatar",
+      header: "",
+      className: "w-0",
+      render: (o) => (
+        <Avatar size="sm" className="ring-1 ring-border">
+          <AvatarFallback>
+            {initials(o.user?.name ?? o.user?.email ?? "?")}
+          </AvatarFallback>
+        </Avatar>
+      ),
+    },
     {
       key: "orderNumber",
       header: "Order #",
@@ -331,21 +376,28 @@ function OrdersPageInner() {
       }
     >
       <div className="flex flex-col gap-4">
-        {/* Status filter tabs */}
-        <Tabs
-          value={server.status}
-          onValueChange={(v) =>
-            setServer((s) => ({ ...s, status: v ?? "all", page: 1 }))
-          }
-        >
-          <TabsList className="h-auto flex-wrap">
-            {STATUS_TABS.map((s) => (
-              <TabsTrigger key={s} value={s} className="capitalize">
-                {s === "all" ? "All" : s}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        {/* Status filter tabs + result count */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Tabs
+            value={server.status}
+            onValueChange={(v) =>
+              setServer((s) => ({ ...s, status: v ?? "all", page: 1 }))
+            }
+          >
+            <TabsList className="h-auto flex-wrap">
+              {STATUS_TABS.map((s) => (
+                <TabsTrigger key={s} value={s} className="capitalize">
+                  {s === "all" ? "All" : s}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+          {result && !isLoading && (
+            <span className="text-sm text-muted-foreground">
+              {result.total} {result.total === 1 ? "order" : "orders"}
+            </span>
+          )}
+        </div>
 
         <DataTable
           columns={columns}
@@ -361,6 +413,19 @@ function OrdersPageInner() {
           searchPlaceholder="Search order # or email…"
           onSearch={setSearch}
           emptyMessage="No orders match these filters."
+          selectable
+          selectedIds={selectedIds}
+          onSelectionChange={setSelectedIds}
+          bulkBar={(ids) => (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => exportSelected(ids)}
+            >
+              <Download className="size-4" />
+              Export selected ({ids.length})
+            </Button>
+          )}
           toolbar={
             <div className="flex flex-wrap items-center gap-2">
               <Select

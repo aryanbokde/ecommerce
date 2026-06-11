@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Loader2, X, Trash2 } from "lucide-react";
@@ -63,7 +63,7 @@ const nonNegInt = z
   .min(1, "Required")
   .refine(
     (v) => Number.isInteger(Number(v)) && Number(v) >= 0,
-    "Enter a whole number ≥ 0"
+    "Enter a whole number >= 0"
   );
 
 const productFormSchema = z.object({
@@ -295,6 +295,8 @@ export function ProductForm({
         mode === "edit" ? "Product updated" : "Product created",
         values.name
       );
+      // Mark pristine so the unsaved-changes guard doesn't fire on navigate.
+      form.reset(values);
       router.push(basePath);
       router.refresh();
     } catch {
@@ -303,316 +305,385 @@ export function ProductForm({
   }
 
   const isSubmitting = form.formState.isSubmitting;
+  const isDirty = form.formState.isDirty;
+
+  // Warn before leaving with unsaved edits (browser/tab close + reload).
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
+  // Live merchandising hints under the pricing card.
+  const [priceStr, costStr, compareStr, slugValue] = useWatch({
+    control: form.control,
+    name: ["price", "costPrice", "comparePrice", "slug"],
+  });
+  const priceN = Number(priceStr);
+  const costN = Number(costStr);
+  const compareN = Number(compareStr);
+  const margin =
+    priceN > 0 && costN > 0 && costN < priceN
+      ? ((priceN - costN) / priceN) * 100
+      : null;
+  const discount =
+    compareN > 0 && priceN > 0 && compareN > priceN
+      ? ((compareN - priceN) / compareN) * 100
+      : null;
+  const compareInvalid = compareN > 0 && priceN > 0 && compareN <= priceN;
+
+  const origin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
 
   return (
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-col gap-6"
+        className="flex flex-col gap-6 pb-20"
       >
-        {/* Basic */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Basic</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Wireless Headphones"
-                      {...field}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        if (!slugEdited) {
-                          form.setValue("slug", slugify(e.target.value), {
-                            shouldValidate: true,
-                          });
+        <div className="grid items-start gap-6 lg:grid-cols-3">
+          {/* ── Main column ─────────────────────────────────────────── */}
+          <div className="flex flex-col gap-6 lg:col-span-2">
+            {/* Basic */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Basic</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Wireless Headphones"
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            if (!slugEdited) {
+                              form.setValue("slug", slugify(e.target.value), {
+                                shouldValidate: true,
+                              });
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="slug"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Slug</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="wireless-headphones"
+                          {...field}
+                          onChange={(e) => {
+                            setSlugEdited(true);
+                            field.onChange(e);
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {slugValue ? (
+                          <span className="font-mono text-foreground/70">
+                            {origin}/products/{slugValue}
+                          </span>
+                        ) : (
+                          "Auto-generated from the name; edit to override."
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          rows={5}
+                          placeholder="Describe the product..."
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Pricing */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Pricing</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-4 sm:grid-cols-3">
+                <FormField
+                  control={form.control}
+                  name="price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Price (₹)</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="comparePrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Compare-at (₹)</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="costPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cost (₹)</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {/* Live margin / discount / validation hints */}
+                {(margin != null || discount != null || compareInvalid) && (
+                  <div className="flex flex-wrap items-center gap-2 sm:col-span-3">
+                    {margin != null && (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+                        Margin {margin.toFixed(0)}%
+                      </span>
+                    )}
+                    {discount != null && (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
+                        {discount.toFixed(0)}% off compare-at
+                      </span>
+                    )}
+                    {compareInvalid && (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                        Compare-at should be higher than price
+                      </span>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Inventory */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Inventory</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="sku"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>SKU</FormLabel>
+                      <FormControl>
+                        <Input placeholder="SKU-001" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="barcode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Barcode</FormLabel>
+                      <FormControl>
+                        <Input placeholder="0123456789012" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="stock"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Stock</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" step="1" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="lowStockAt"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Low-stock threshold</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" step="1" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Images */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Images</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FormField
+                  control={form.control}
+                  name="images"
+                  render={({ field }) => (
+                    <FormItem>
+                      <ProductImageUploader
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* ── Sidebar ─────────────────────────────────────────────── */}
+          <div className="flex flex-col gap-6 lg:sticky lg:top-6">
+            {/* Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Status</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <FormField
+                  control={form.control}
+                  name="isActive"
+                  render={({ field }) => (
+                    <FormItem className="flex-row items-center justify-between rounded-lg border p-3">
+                      <div className="space-y-0.5">
+                        <FormLabel>Active</FormLabel>
+                        <FormDescription>
+                          Visible and purchasable in the store.
+                        </FormDescription>
+                      </div>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="isFeatured"
+                  render={({ field }) => (
+                    <FormItem className="flex-row items-center justify-between rounded-lg border p-3">
+                      <div className="space-y-0.5">
+                        <FormLabel>Featured</FormLabel>
+                        <FormDescription>
+                          Highlighted on the storefront.
+                        </FormDescription>
+                      </div>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Organization */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Organization</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <FormField
+                  control={form.control}
+                  name="categoryId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <Select
+                        value={field.value || "none"}
+                        // items: trigger shows the category name, not the raw id.
+                        items={[
+                          { value: "none", label: "No category" },
+                          ...categories.map((c) => ({
+                            value: c.id,
+                            label: c.name,
+                          })),
+                        ]}
+                        onValueChange={(v) =>
+                          field.onChange(v === "none" ? "" : (v ?? ""))
                         }
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="slug"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Slug</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="wireless-headphones"
-                      {...field}
-                      onChange={(e) => {
-                        setSlugEdited(true);
-                        field.onChange(e);
-                      }}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Auto-generated from the name; edit to override.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      rows={5}
-                      placeholder="Describe the product…"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Pricing */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Pricing</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-3">
-            <FormField
-              control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Price (₹)</FormLabel>
-                  <FormControl>
-                    <Input type="number" min="0" step="0.01" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="comparePrice"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Compare-at (₹)</FormLabel>
-                  <FormControl>
-                    <Input type="number" min="0" step="0.01" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="costPrice"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cost (₹)</FormLabel>
-                  <FormControl>
-                    <Input type="number" min="0" step="0.01" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Inventory */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Inventory</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="sku"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>SKU</FormLabel>
-                  <FormControl>
-                    <Input placeholder="SKU-001" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="barcode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Barcode</FormLabel>
-                  <FormControl>
-                    <Input placeholder="0123456789012" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="stock"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Stock</FormLabel>
-                  <FormControl>
-                    <Input type="number" min="0" step="1" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="lowStockAt"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Low-stock threshold</FormLabel>
-                  <FormControl>
-                    <Input type="number" min="0" step="1" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Organization */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Organization</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <FormField
-              control={form.control}
-              name="categoryId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <Select
-                    value={field.value || "none"}
-                    // items → trigger shows the category name (not the raw id).
-                    items={[
-                      { value: "none", label: "No category" },
-                      ...categories.map((c) => ({
-                        value: c.id,
-                        label: c.name,
-                      })),
-                    ]}
-                    onValueChange={(v) =>
-                      field.onChange(v === "none" ? "" : (v ?? ""))
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No category</SelectItem>
-                      {categories.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {"  ".repeat(c.depth)}
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="tags"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tags</FormLabel>
-                  <TagsInput
-                    value={field.value}
-                    onChange={field.onChange}
-                  />
-                  <FormDescription>
-                    Press Enter or comma to add a tag.
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="isActive"
-              render={({ field }) => (
-                <FormItem className="flex-row items-center justify-between rounded-lg border p-3">
-                  <div className="space-y-0.5">
-                    <FormLabel>Active</FormLabel>
-                    <FormDescription>
-                      Visible and purchasable in the store.
-                    </FormDescription>
-                  </div>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="isFeatured"
-              render={({ field }) => (
-                <FormItem className="flex-row items-center justify-between rounded-lg border p-3">
-                  <div className="space-y-0.5">
-                    <FormLabel>Featured</FormLabel>
-                    <FormDescription>
-                      Highlighted on the storefront.
-                    </FormDescription>
-                  </div>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Images */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Images</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FormField
-              control={form.control}
-              name="images"
-              render={({ field }) => (
-                <FormItem>
-                  <ProductImageUploader
-                    value={field.value}
-                    onChange={field.onChange}
-                  />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No category</SelectItem>
+                          {categories.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {"  ".repeat(c.depth)}
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="tags"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tags</FormLabel>
+                      <TagsInput value={field.value} onChange={field.onChange} />
+                      <FormDescription>
+                        Press Enter or comma to add a tag.
+                      </FormDescription>
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
         {/* Danger zone (edit + admin only) */}
         {showDangerZone && (
@@ -638,19 +709,27 @@ export function ProductForm({
           </Card>
         )}
 
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push(basePath)}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="animate-spin" />}
-            {mode === "edit" ? "Save changes" : "Create product"}
-          </Button>
+        {/* Sticky save bar */}
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/80 backdrop-blur-sm">
+          <div className="mx-auto flex max-w-(--breakpoint-2xl) items-center justify-end gap-2 px-4 py-3 sm:px-6">
+            {isDirty && (
+              <span className="mr-auto text-sm text-muted-foreground">
+                Unsaved changes
+              </span>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push(basePath)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="animate-spin" />}
+              {mode === "edit" ? "Save changes" : "Create product"}
+            </Button>
+          </div>
         </div>
       </form>
 
@@ -737,7 +816,7 @@ function TagsInput({
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={onKeyDown}
         onBlur={() => add(draft)}
-        placeholder={value.length === 0 ? "Add tags…" : ""}
+        placeholder={value.length === 0 ? "Add tags..." : ""}
         className="h-6 flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-muted-foreground"
       />
     </div>

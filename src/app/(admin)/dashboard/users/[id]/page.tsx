@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ArrowLeft,
   Mail,
   Phone,
   BadgeCheck,
@@ -25,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import prisma from "@/server/db";
 import { UserRoleManager } from "@/components/admin/UserRoleManager";
+import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 
 const ROLE_LABEL: Record<string, string> = {
   customer: "Customer",
@@ -118,25 +118,39 @@ export default async function UserDetailPage({
   const user = await loadUser(id);
   if (!user) notFound();
 
-  const [orderCount, spent, reviewCount, auditLogs] = await Promise.all([
-    prisma.order.count({ where: { userId: id } }),
-    prisma.order.aggregate({
-      _sum: { total: true },
-      // "Spent" mirrors the revenue rule: exclude cancelled/returned orders and
-      // failed payments (money never collected or refunded back).
-      where: {
-        userId: id,
-        status: { notIn: ["cancelled", "returned"] },
-        paymentStatus: { not: "failed" },
-      },
-    }),
-    prisma.review.count({ where: { userId: id } }),
-    prisma.auditLog.findMany({
-      where: { userId: id },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-    }),
-  ]);
+  const [orderCount, spent, reviewCount, auditLogs, recentOrders] =
+    await Promise.all([
+      prisma.order.count({ where: { userId: id } }),
+      prisma.order.aggregate({
+        _sum: { total: true },
+        // "Spent" mirrors the revenue rule: exclude cancelled/returned orders and
+        // failed payments (money never collected or refunded back).
+        where: {
+          userId: id,
+          status: { notIn: ["cancelled", "returned"] },
+          paymentStatus: { not: "failed" },
+        },
+      }),
+      prisma.review.count({ where: { userId: id } }),
+      prisma.auditLog.findMany({
+        where: { userId: id },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      }),
+      prisma.order.findMany({
+        where: { userId: id },
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        select: {
+          id: true,
+          orderNumber: true,
+          total: true,
+          status: true,
+          createdAt: true,
+          _count: { select: { items: true } },
+        },
+      }),
+    ]);
 
   const totalSpent = spent._sum.total ?? 0;
 
@@ -148,17 +162,9 @@ export default async function UserDetailPage({
   ];
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-      <Link
-        href="/dashboard/users"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        Users
-      </Link>
-
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="mt-4 flex items-center gap-4">
+      <div className="flex items-center gap-4">
         <Avatar size="lg">
           {user.image ? <AvatarImage src={user.image} alt={user.name} /> : null}
           <AvatarFallback>{initials(user.name)}</AvatarFallback>
@@ -212,37 +218,60 @@ export default async function UserDetailPage({
             })}
           </div>
 
-          {/* Profile info */}
-          <div className="rounded-xl border border-border p-5">
-            <h2 className="font-heading text-base font-semibold text-foreground">
-              Profile
-            </h2>
-            <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-              <div className="flex items-center gap-2">
-                <Mail className="size-4 text-muted-foreground" />
-                <dd className="text-foreground">{user.email}</dd>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone className="size-4 text-muted-foreground" />
-                <dd className="text-foreground">{user.phone ?? "—"}</dd>
-              </div>
-              <div className="flex items-center gap-2">
-                <BadgeCheck className="size-4 text-muted-foreground" />
-                <dd className="text-foreground">
-                  Email {user.emailVerified ? "verified" : "unverified"}
-                </dd>
-              </div>
-              <div className="flex items-center gap-2">
-                <BadgeCheck className="size-4 text-muted-foreground" />
-                <dd className="text-foreground">
-                  2FA {user.twoFactorEnabled ? "enabled" : "disabled"}
-                </dd>
-              </div>
-            </dl>
-            {!user.isActive && user.banReason && (
-              <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
-                <span className="font-medium">Ban reason:</span> {user.banReason}
+          {/* Recent orders */}
+          <div className="rounded-xl border border-border">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <h2 className="text-sm font-medium text-foreground">
+                Recent orders
+              </h2>
+              {orderCount > recentOrders.length && (
+                <span className="text-xs text-muted-foreground">
+                  showing {recentOrders.length} of {orderCount}
+                </span>
+              )}
+            </div>
+            {recentOrders.length === 0 ? (
+              <p className="px-4 py-6 text-center text-sm text-muted-foreground">
+                No orders placed yet.
               </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order</TableHead>
+                    <TableHead className="text-center">Items</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentOrders.map((o) => (
+                    <TableRow key={o.id}>
+                      <TableCell className="font-medium">
+                        <Link
+                          href={`/dashboard/orders/${o.id}`}
+                          className="hover:underline"
+                        >
+                          {o.orderNumber}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-center tabular-nums text-muted-foreground">
+                        {o._count.items}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {inr(o.total)}
+                      </TableCell>
+                      <TableCell>
+                        <OrderStatusBadge status={o.status} />
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {fmtDate(o.createdAt)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </div>
 
@@ -296,13 +325,47 @@ export default async function UserDetailPage({
           </div>
         </div>
 
-        {/* Right: role + status management */}
-        <aside className="lg:col-span-1">
+        {/* Right: role + status management + profile */}
+        <aside className="flex flex-col gap-6 lg:col-span-1 lg:sticky lg:top-6 lg:self-start">
           <UserRoleManager
             userId={user.id}
             currentRole={user.role}
             isActive={user.isActive}
           />
+
+          {/* Profile */}
+          <div className="rounded-xl border border-border p-5">
+            <h2 className="font-heading text-base font-semibold text-foreground">
+              Profile
+            </h2>
+            <dl className="mt-3 flex flex-col gap-3 text-sm">
+              <div className="flex items-center gap-2">
+                <Mail className="size-4 shrink-0 text-muted-foreground" />
+                <dd className="truncate text-foreground">{user.email}</dd>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="size-4 shrink-0 text-muted-foreground" />
+                <dd className="text-foreground">{user.phone ?? "—"}</dd>
+              </div>
+              <div className="flex items-center gap-2">
+                <BadgeCheck className="size-4 shrink-0 text-muted-foreground" />
+                <dd className="text-foreground">
+                  Email {user.emailVerified ? "verified" : "unverified"}
+                </dd>
+              </div>
+              <div className="flex items-center gap-2">
+                <BadgeCheck className="size-4 shrink-0 text-muted-foreground" />
+                <dd className="text-foreground">
+                  2FA {user.twoFactorEnabled ? "enabled" : "disabled"}
+                </dd>
+              </div>
+            </dl>
+            {!user.isActive && user.banReason && (
+              <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+                <span className="font-medium">Ban reason:</span> {user.banReason}
+              </p>
+            )}
+          </div>
         </aside>
       </div>
     </div>
