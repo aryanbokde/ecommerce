@@ -76,15 +76,23 @@ export default function LowStockPage() {
 
   // "Restock All" pre-fills the bulk dialog so it tops each item back up to a
   // sensible level (threshold + a small buffer), then lets the manager tweak.
+  const restockQty = (p: LowStockRow) =>
+    Math.max(p.lowStockAt * 2 - p.stock, p.lowStockAt, 1);
+
   function restockAll() {
     setBulkSeed(
       allRows.map((p) => ({
         productId: p.id,
         name: p.name,
-        quantity: Math.max(p.lowStockAt * 2 - p.stock, p.lowStockAt, 1),
+        quantity: restockQty(p),
       }))
     );
   }
+
+  // At-a-glance restock workload: how many SKUs need attention, the suggested
+  // restock units, and recent demand (30-day sales) on the at-risk set.
+  const unitsToRestock = allRows.reduce((s, p) => s + restockQty(p), 0);
+  const sold30d = allRows.reduce((s, p) => s + p.soldLast30d, 0);
 
   return (
     <DashboardShell
@@ -97,6 +105,30 @@ export default function LowStockPage() {
         </Button>
       }
     >
+      {/* Restock workload summary */}
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Tile
+          label="Out of stock"
+          value={isLoading ? "·" : outOfStock.length}
+          tone="red"
+        />
+        <Tile
+          label="Low stock"
+          value={isLoading ? "·" : lowStock.length}
+          tone="amber"
+        />
+        <Tile
+          label="Units to restock"
+          value={isLoading ? "·" : unitsToRestock.toLocaleString("en-IN")}
+          sub="suggested top-up"
+        />
+        <Tile
+          label="Sold · 30d"
+          value={isLoading ? "·" : sold30d.toLocaleString("en-IN")}
+          sub="across at-risk SKUs"
+        />
+      </div>
+
       <div className="space-y-8">
         <Section
           title="Out of Stock"
@@ -158,6 +190,34 @@ const TONES = {
   },
 } as const;
 
+function Tile({
+  label,
+  value,
+  sub,
+  tone = "default",
+}: {
+  label: string;
+  value: number | string;
+  sub?: string;
+  tone?: "default" | "amber" | "red";
+}) {
+  const toneCls =
+    tone === "amber"
+      ? "text-amber-600 dark:text-amber-400"
+      : tone === "red"
+        ? "text-rose-600 dark:text-rose-400"
+        : "text-foreground";
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className={cn("mt-1 text-xl font-semibold tabular-nums", toneCls)}>
+        {value}
+      </p>
+      {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
+    </div>
+  );
+}
+
 function Section({
   title,
   icon: Icon,
@@ -211,7 +271,13 @@ function Section({
               <span className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">
                 {p.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.image} alt="" className="size-full object-cover" />
+                  <img
+                    src={p.image}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="size-full object-cover"
+                  />
                 ) : (
                   <ImageIcon className="size-4 text-muted-foreground" />
                 )}

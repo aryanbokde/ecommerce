@@ -218,6 +218,44 @@ export async function getOutOfStockProducts() {
   });
 }
 
+export interface InventorySummary {
+  total: number;
+  out: number;
+  low: number;
+  inStock: number;
+  units: number; // total on-hand stock across active products
+  value: number; // ₹ retail value (Σ price × stock)
+}
+
+/** Inventory health snapshot for active products (drives the summary strip). */
+export async function getInventorySummary(): Promise<InventorySummary> {
+  const [total, out, low, agg] = await Promise.all([
+    prisma.product.count({ where: { isActive: true } }),
+    prisma.product.count({ where: { isActive: true, stock: 0 } }),
+    prisma.product.count({
+      where: {
+        isActive: true,
+        stock: { gt: 0, lte: prisma.product.fields.lowStockAt },
+      },
+    }),
+    prisma.$queryRaw<{ units: bigint | null; value: string | null }[]>(
+      Prisma.sql`
+        SELECT COALESCE(SUM(stock), 0) AS units,
+               CAST(COALESCE(SUM(price * stock), 0) AS CHAR) AS value
+        FROM products WHERE isActive = 1
+      `
+    ),
+  ]);
+  return {
+    total,
+    out,
+    low,
+    inStock: total - out - low,
+    units: Number(agg[0]?.units ?? 0),
+    value: agg[0]?.value ? Number(agg[0].value) : 0,
+  };
+}
+
 /** Restock many products in a single transaction (all-or-nothing). */
 export async function bulkRestock(
   items: { productId: string; quantity: number }[],

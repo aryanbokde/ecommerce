@@ -97,7 +97,11 @@ export function CategoryNav({
             <NavigationMenuLink
               render={<Link href={`/shop?category=${c.slug}`} />}
               className={cn(
-                activeSlug === c.slug && "bg-muted/60 font-medium text-foreground"
+                // Animated underline: a teal bar that scales in from the centre
+                // on hover, and stays put for the active category.
+                "relative px-3 text-muted-foreground transition-colors hover:text-foreground after:absolute after:inset-x-2 after:bottom-1 after:h-0.5 after:origin-center after:scale-x-0 after:rounded-full after:bg-primary after:transition-transform after:duration-300 hover:after:scale-x-100",
+                activeSlug === c.slug &&
+                  "font-medium text-foreground after:scale-x-100"
               )}
             >
               {c.name}

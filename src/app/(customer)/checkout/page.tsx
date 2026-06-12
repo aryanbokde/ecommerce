@@ -1,9 +1,18 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, ShoppingBag } from "lucide-react";
+import { Loader2, ShoppingBag, CreditCard } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { CheckoutSteps } from "@/components/checkout/CheckoutSteps";
 import { AddressStep } from "@/components/checkout/AddressStep";
 import { PaymentStep } from "@/components/checkout/PaymentStep";
@@ -71,37 +80,78 @@ export default function CheckoutPage() {
 
   if (!cart) {
     return (
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <Loader2 className="size-5 animate-spin" />
-          Preparing checkout…
+      <>
+        <CheckoutHero subtitle="Securing your checkout…" />
+        <div className="mx-auto max-w-6xl px-4 pb-20 pt-10 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <Loader2 className="size-5 animate-spin" />
+            Preparing checkout…
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-      <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-        Checkout
-      </h1>
-
-      <div className="mt-8 max-w-2xl">
-        <CheckoutSteps currentStep={step} />
-      </div>
-
-      <div className="mt-10 grid gap-8 lg:grid-cols-3">
-        {/* Step content */}
-        <div className="lg:col-span-2">
-          {step === "address" && <AddressStep />}
-          {step === "payment" && <PaymentStep />}
-          {step === "review" && <ReviewStep />}
+    <>
+      <CheckoutHero subtitle="Complete your order in a few steps" />
+      <div className="mx-auto max-w-6xl px-4 pb-20 pt-10 sm:px-6 lg:px-8">
+        <div className="max-w-2xl">
+          <CheckoutSteps currentStep={step} />
         </div>
 
-        {/* Order summary */}
-        <aside className="lg:col-span-1">
-          <OrderSummary items={cart} />
-        </aside>
+        <div className="mt-10 grid gap-8 lg:grid-cols-3">
+          {/* Step content */}
+          <div className="lg:col-span-2">
+            {step === "address" && <AddressStep />}
+            {step === "payment" && <PaymentStep />}
+            {step === "review" && <ReviewStep />}
+          </div>
+
+          {/* Order summary */}
+          <aside className="lg:col-span-1">
+            <OrderSummary items={cart} />
+          </aside>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Full-width hero band — flush under the site header, carrying the breadcrumb
+// (Home › Cart › Checkout) + page title. Matches the cart page treatment.
+function CheckoutHero({ subtitle }: { subtitle?: React.ReactNode }) {
+  return (
+    <div className="border-b border-border bg-gradient-to-b from-muted/50 to-background">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink render={<Link href="/" />}>Home</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink render={<Link href="/cart" />}>Cart</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Checkout</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <div className="mt-3 flex items-center gap-3">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <CreditCard className="size-5" />
+          </span>
+          <div>
+            <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
+              Checkout
+            </h1>
+            {subtitle && (
+              <p className="text-sm text-muted-foreground">{subtitle}</p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

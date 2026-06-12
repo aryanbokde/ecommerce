@@ -8,6 +8,7 @@ import { DataTable, type Column } from "@/components/admin/DataTable";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -35,6 +36,14 @@ interface CategoryOption {
   id: string;
   name: string;
   depth: number;
+}
+
+interface CatalogSummary {
+  total: number;
+  active: number;
+  inactive: number;
+  low: number;
+  out: number;
 }
 
 interface CategoryNode {
@@ -84,6 +93,7 @@ export default function ManagerProductsPage() {
     totalPages: number;
   } | null>(null);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [summary, setSummary] = useState<CatalogSummary | null>(null);
 
   const key = JSON.stringify({ ...query, refreshTick });
   const isLoading = result?.key !== key;
@@ -118,6 +128,20 @@ export default function ManagerProductsPage() {
       });
     return () => ctrl.abort();
   }, [query, refreshTick, key]);
+
+  // Catalog rollup for the header tiles — refetch after a toggle changes the
+  // active/inactive split.
+  useEffect(() => {
+    const ctrl = new AbortController();
+    fetch("/api/manager/catalog-summary", {
+      signal: ctrl.signal,
+      credentials: "include",
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("failed"))))
+      .then((j) => setSummary(j.data ?? null))
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, [refreshTick]);
 
   useEffect(() => {
     let cancelled = false;
@@ -159,7 +183,13 @@ export default function ManagerProductsPage() {
         const src = p.images?.[0];
         return src ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt={p.name} className="size-10 rounded-md object-cover" />
+          <img
+            src={src}
+            alt={p.name}
+            loading="lazy"
+            decoding="async"
+            className="size-10 rounded-md object-cover ring-1 ring-border"
+          />
         ) : (
           <div className="flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
             <ImageIcon className="size-4" />
@@ -231,6 +261,17 @@ export default function ManagerProductsPage() {
 
   return (
     <DashboardShell title="Products" description="Edit catalog details and availability">
+      {/* Catalog summary */}
+      {summary && (
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <Tile label="Total products" value={summary.total} />
+          <Tile label="Active" value={summary.active} tone="green" />
+          <Tile label="Inactive" value={summary.inactive} />
+          <Tile label="Low stock" value={summary.low} tone="amber" />
+          <Tile label="Out of stock" value={summary.out} tone="red" />
+        </div>
+      )}
+
       <DataTable
         columns={columns}
         data={result?.products ?? []}
@@ -306,5 +347,32 @@ export default function ManagerProductsPage() {
         )}
       />
     </DashboardShell>
+  );
+}
+
+function Tile({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: number | string;
+  tone?: "default" | "green" | "amber" | "red";
+}) {
+  const toneCls =
+    tone === "green"
+      ? "text-green-600 dark:text-green-400"
+      : tone === "amber"
+        ? "text-amber-600 dark:text-amber-400"
+        : tone === "red"
+          ? "text-rose-600 dark:text-rose-400"
+          : "text-foreground";
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className={cn("mt-1 text-xl font-semibold tabular-nums", toneCls)}>
+        {value}
+      </p>
+    </div>
   );
 }

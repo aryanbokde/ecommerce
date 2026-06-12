@@ -241,3 +241,30 @@ export async function getLowStockProducts() {
     include: { category: categoryPreview },
   });
 }
+
+export interface CatalogSummary {
+  total: number;
+  active: number;
+  inactive: number;
+  low: number; // active, 0 < stock <= lowStockAt
+  out: number; // active, stock = 0
+}
+
+/**
+ * Catalog rollup for the manager products page. Counts the WHOLE catalog
+ * (active + inactive), unlike the inventory summary which is active-only.
+ */
+export async function getCatalogSummary(): Promise<CatalogSummary> {
+  const [total, active, out, low] = await Promise.all([
+    prisma.product.count(),
+    prisma.product.count({ where: { isActive: true } }),
+    prisma.product.count({ where: { isActive: true, stock: 0 } }),
+    prisma.product.count({
+      where: {
+        isActive: true,
+        stock: { gt: 0, lte: prisma.product.fields.lowStockAt },
+      },
+    }),
+  ]);
+  return { total, active, inactive: total - active, low, out };
+}

@@ -3,18 +3,18 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AnimatePresence } from "framer-motion";
 import {
-  Plus,
-  Minus,
-  Trash2,
   ShoppingBag,
   ArrowLeft,
   Loader2,
-  Tag,
+  Trash2,
+  Truck,
+  ShieldCheck,
+  RotateCcw,
+  Headphones,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogTrigger,
@@ -27,7 +27,18 @@ import {
 } from "@/components/ui/dialog";
 import { useCart, type CartItem } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
-import { notifyError } from "@/lib/notify";
+import { CartItemRow } from "@/components/store/CartItemRow";
+import { CartSummary } from "@/components/store/CartSummary";
+import { CartRecommendations } from "@/components/store/CartRecommendations";
+import { RecentlyViewed } from "@/components/store/RecentlyViewed";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 const FREE_SHIPPING_THRESHOLD = 999;
 const SHIPPING_FEE = 99;
@@ -38,11 +49,6 @@ function formatPrice(value: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   })}`;
-}
-
-function firstImage(images: unknown): string | null {
-  if (Array.isArray(images) && typeof images[0] === "string") return images[0];
-  return null;
 }
 
 export default function CartPage() {
@@ -60,7 +66,6 @@ export default function CartPage() {
   } = useCart();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
-  const [coupon, setCoupon] = useState("");
 
   // Load the cart once on mount (the store may already be populated by the
   // header's CartDrawer, but refreshing guarantees fresh quantities/prices).
@@ -104,283 +109,263 @@ export default function CartPage() {
   const shipping = subtotal > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
   const tax = subtotal * TAX_RATE;
   const grandTotal = subtotal + shipping + tax;
+  const freeShipPct = Math.min(
+    100,
+    Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100)
+  );
+  const freeShipRemaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal + 1);
+  // Block checkout while the cart holds an item that's gone inactive / OOS.
+  const hasUnavailable = items.some(
+    (it) => !it.product.isActive || it.product.stock <= 0
+  );
 
   // ── Loading ──────────────────────────────────────────────────────────────
   if (isLoading && items.length === 0) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-3">
-          <Loader2 className="size-5 animate-spin text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
-            Loading your cart…
-          </span>
+      <>
+        <CartHero subtitle="Loading your cart…" />
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <Loader2 className="size-5 animate-spin text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">
+              Loading your cart…
+            </span>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   // ── Empty ────────────────────────────────────────────────────────────────
   if (items.length === 0) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-          Shopping Cart
-        </h1>
-        <div className="mt-8 flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-border py-20 text-center">
-          <ShoppingBag className="size-12 text-muted-foreground" />
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              Your cart is empty
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Looks like you haven&apos;t added anything yet.
-            </p>
+      <>
+        <CartHero subtitle="Your cart is waiting" />
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+          <div className="flex flex-col items-center justify-center gap-5 rounded-2xl border border-dashed border-border bg-card/40 px-6 py-20 text-center">
+            <span className="flex size-20 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <ShoppingBag className="size-9" />
+            </span>
+            <div className="space-y-1.5">
+              <h2 className="text-lg font-semibold text-foreground">
+                Your cart is empty
+              </h2>
+              <p className="mx-auto max-w-sm text-sm text-muted-foreground">
+                Looks like you haven&apos;t added anything yet. Explore our
+                products and find something you love.
+              </p>
+            </div>
+            <Button
+              size="lg"
+              render={<Link href="/products" />}
+              nativeButton={false}
+              className="bg-gradient-to-r from-primary to-primary/80 font-semibold shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/25"
+            >
+              Start Shopping
+            </Button>
           </div>
-          <Button render={<Link href="/products" />} nativeButton={false}>
-            Browse Products
-          </Button>
         </div>
-      </div>
+
+        {/* Help them restart: popular picks + what they were just looking at */}
+        <div className="border-t border-border bg-muted/20 pb-10">
+          <CartRecommendations excludeIds={[]} title="Popular right now" />
+          <RecentlyViewed />
+        </div>
+      </>
     );
   }
 
   // ── Cart with items ────────────────────────────────────────────────────────
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-        Shopping Cart{" "}
-        <span className="text-base font-normal text-muted-foreground">
-          ({count} {count === 1 ? "item" : "items"})
-        </span>
-      </h1>
+    <>
+      <CartHero
+        pill={
+          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+            {count} {count === 1 ? "item" : "items"}
+          </span>
+        }
+      />
+      <div className="mx-auto max-w-7xl px-4 pb-10 pt-10 sm:px-6 lg:px-8">
+        <div className="grid gap-8 lg:grid-cols-3">
+          {/* ── Items column ── */}
+          <div className="lg:col-span-2">
+            <ul className="flex flex-col">
+              <AnimatePresence initial={false}>
+                {items.map((item) => (
+                  <CartItemRow
+                    key={item.id}
+                    item={item}
+                    busy={busyId === item.id}
+                    onSetQuantity={setQuantity}
+                    onRemove={removeItem}
+                  />
+                ))}
+              </AnimatePresence>
+            </ul>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-3">
-        {/* ── Items column ── */}
-        <div className="lg:col-span-2">
-          <ul className="flex flex-col divide-y divide-border rounded-xl border border-border">
-            {items.map((item) => {
-              const img = firstImage(item.product.images);
-              const busy = busyId === item.id;
-              const unitPrice = Number(item.product.price);
-              const atStock = item.quantity >= item.product.stock;
-              return (
-                <li key={item.id} className="flex gap-4 p-4">
-                  {/* Image */}
-                  <Link
-                    href={`/products/${item.product.slug}`}
-                    className="flex size-[60px] shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted"
-                  >
-                    {img ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={img}
-                        alt={item.product.name}
-                        className="size-full object-cover"
-                      />
-                    ) : (
-                      <ShoppingBag className="size-5 text-muted-foreground" />
-                    )}
-                  </Link>
-
-                  {/* Details */}
-                  <div className="flex min-w-0 flex-1 flex-col gap-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <Link
-                        href={`/products/${item.product.slug}`}
-                        className="text-sm font-medium text-foreground hover:underline"
-                      >
-                        {item.product.name}
-                      </Link>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label="Remove item"
-                        disabled={busy}
-                        onClick={() => removeItem(item)}
-                      >
-                        {busy ? (
-                          <Loader2 className="animate-spin" />
-                        ) : (
-                          <Trash2 />
-                        )}
-                      </Button>
-                    </div>
-
-                    <p className="text-xs text-muted-foreground">
-                      {formatPrice(unitPrice)} each
-                    </p>
-
-                    <div className="mt-auto flex items-center justify-between gap-2">
-                      {/* Quantity stepper */}
-                      <div className="flex items-center rounded-md border border-border">
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label="Decrease quantity"
-                          disabled={busy || item.quantity <= 1}
-                          onClick={() => setQuantity(item, item.quantity - 1)}
-                        >
-                          <Minus />
-                        </Button>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          aria-label="Quantity"
-                          value={item.quantity}
-                          disabled={busy}
-                          onChange={(e) => {
-                            const next = parseInt(e.target.value, 10);
-                            if (!Number.isNaN(next)) setQuantity(item, next);
-                          }}
-                          className="w-10 bg-transparent text-center text-sm tabular-nums outline-none"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label="Increase quantity"
-                          disabled={busy || atStock}
-                          onClick={() => setQuantity(item, item.quantity + 1)}
-                        >
-                          <Plus />
-                        </Button>
-                      </div>
-
-                      {/* Line total */}
-                      <span className="text-sm font-semibold text-foreground tabular-nums">
-                        {formatPrice(unitPrice * item.quantity)}
-                      </span>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-
-          {/* Footer actions */}
-          <div className="mt-4 flex items-center justify-between">
-            <Button
-              variant="ghost"
-              render={<Link href="/products" />}
-              nativeButton={false}
-            >
-              <ArrowLeft />
-              Continue Shopping
-            </Button>
-
-            <Dialog>
-              <DialogTrigger
-                render={
-                  <Button variant="ghost" className="text-muted-foreground" />
-                }
+            {/* Footer actions */}
+            <div className="mt-2 flex items-center justify-between">
+              <Button
+                variant="ghost"
+                render={<Link href="/products" />}
+                nativeButton={false}
+                className="text-muted-foreground hover:text-foreground"
               >
-                <Trash2 />
-                Clear Cart
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Clear your cart?</DialogTitle>
-                  <DialogDescription>
-                    This will remove all {count} {count === 1 ? "item" : "items"}{" "}
-                    from your cart. This can&apos;t be undone.
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <DialogClose render={<Button variant="outline" />}>
-                    Cancel
-                  </DialogClose>
-                  <DialogClose
-                    render={<Button variant="destructive" />}
-                    onClick={clearCart}
-                    disabled={clearing}
-                  >
-                    {clearing && <Loader2 className="animate-spin" />}
-                    Clear Cart
-                  </DialogClose>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                <ArrowLeft />
+                Continue Shopping
+              </Button>
+
+              <Dialog>
+                <DialogTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      className="text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400"
+                    />
+                  }
+                >
+                  <Trash2 />
+                  Clear Cart
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Clear your cart?</DialogTitle>
+                    <DialogDescription>
+                      This will remove all {count}{" "}
+                      {count === 1 ? "item" : "items"} from your cart. This
+                      can&apos;t be undone.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <DialogClose render={<Button variant="outline" />}>
+                      Cancel
+                    </DialogClose>
+                    <DialogClose
+                      render={<Button variant="destructive" />}
+                      onClick={clearCart}
+                      disabled={clearing}
+                    >
+                      {clearing && <Loader2 className="animate-spin" />}
+                      Clear Cart
+                    </DialogClose>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
+
+          {/* ── Order summary column ── */}
+          <aside className="lg:col-span-1">
+            <CartSummary
+              subtotal={subtotal}
+              shipping={shipping}
+              tax={tax}
+              total={grandTotal}
+              freeShipPct={freeShipPct}
+              freeShipRemaining={freeShipRemaining}
+              hasUnavailable={hasUnavailable}
+              onCheckout={onCheckout}
+            />
+          </aside>
         </div>
 
-        {/* ── Order summary column ── */}
-        <aside className="lg:col-span-1">
-          <div className="sticky top-24 rounded-xl border border-border bg-card p-5">
-            <h2 className="font-heading text-base font-semibold text-foreground">
-              Order Summary
-            </h2>
+        {/* Trust / benefits strip */}
+        <div className="mt-20 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border lg:grid-cols-4">
+          <Benefit
+            icon={Truck}
+            title="Free shipping"
+            sub={`On orders over ${formatPrice(FREE_SHIPPING_THRESHOLD)}`}
+          />
+          <Benefit
+            icon={ShieldCheck}
+            title="Secure payments"
+            sub="256-bit encrypted checkout"
+          />
+          <Benefit
+            icon={RotateCcw}
+            title="Easy returns"
+            sub="7-day hassle-free returns"
+          />
+          <Benefit
+            icon={Headphones}
+            title="24/7 support"
+            sub="We're here to help"
+          />
+        </div>
+      </div>
 
-            <dl className="mt-4 flex flex-col gap-2.5 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Subtotal</dt>
-                <dd className="text-foreground tabular-nums">
-                  {formatPrice(subtotal)}
-                </dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Estimated shipping</dt>
-                <dd className="text-foreground tabular-nums">
-                  {shipping === 0 ? (
-                    <span className="text-green-600">Free</span>
-                  ) : (
-                    formatPrice(shipping)
-                  )}
-                </dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Estimated tax (18%)</dt>
-                <dd className="text-foreground tabular-nums">
-                  {formatPrice(tax)}
-                </dd>
-              </div>
-            </dl>
+      {/* Discovery band — bordered + tinted so it reads as a deliberate section
+          rather than a gap before the footer. pb-10 + each child's py-10 keep an
+          ~80px rhythm between every section and before the footer. */}
+      <div className="border-t border-border bg-muted/20 pb-10">
+        <CartRecommendations excludeIds={items.map((it) => it.product.id)} />
+        <RecentlyViewed />
+      </div>
+    </>
+  );
+}
 
-            {shipping > 0 && (
-              <p className="mt-3 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-                Add {formatPrice(FREE_SHIPPING_THRESHOLD - subtotal + 1)} more to
-                qualify for free shipping.
-              </p>
-            )}
-
-            <Separator className="my-4" />
-
-            <div className="flex items-center justify-between text-base font-semibold text-foreground">
-              <span>Total</span>
-              <span className="tabular-nums">{formatPrice(grandTotal)}</span>
+// Full-width hero band — sits flush under the site header (no gap) and carries
+// the breadcrumb + page title, matching the product-detail breadcrumb pattern.
+function CartHero({
+  subtitle,
+  pill,
+}: {
+  subtitle?: React.ReactNode;
+  pill?: React.ReactNode;
+}) {
+  return (
+    <div className="border-b border-border bg-gradient-to-b from-muted/50 to-background">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink render={<Link href="/" />}>Home</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Cart</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <div className="mt-3 flex items-center gap-3.5">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <ShoppingBag className="size-6" />
+          </span>
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                Shopping Cart
+              </h1>
+              {pill}
             </div>
-
-            <Button size="lg" className="mt-5 w-full" onClick={onCheckout}>
-              Proceed to Checkout
-            </Button>
-
-            {/* Coupon (UI only) */}
-            <form
-              className="mt-4"
-              onSubmit={(e) => {
-                e.preventDefault();
-                notifyError("Coupons coming soon", "This code can't be applied yet.");
-              }}
-            >
-              <label
-                htmlFor="coupon"
-                className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground"
-              >
-                <Tag className="size-3.5" />
-                Have a coupon?
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  id="coupon"
-                  placeholder="Enter code"
-                  value={coupon}
-                  onChange={(e) => setCoupon(e.target.value)}
-                />
-                <Button type="submit" variant="outline" disabled={!coupon.trim()}>
-                  Apply
-                </Button>
-              </div>
-            </form>
+            {subtitle && (
+              <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
+            )}
           </div>
-        </aside>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Benefit({
+  icon: Icon,
+  title,
+  sub,
+}: {
+  icon: typeof Truck;
+  title: string;
+  sub: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 bg-card p-4">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <Icon className="size-5" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        <p className="truncate text-xs text-muted-foreground">{sub}</p>
       </div>
     </div>
   );

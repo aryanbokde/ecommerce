@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { MapPin } from "lucide-react";
+import { NewsletterForm } from "@/components/layout/NewsletterForm";
 
 // NOTE: lucide-react v1 removed its brand glyphs (Facebook/Twitter/Instagram), so
 // these are inlined as small SVGs to keep the exact brands the design calls for.
@@ -61,12 +63,12 @@ function FooterColumn({
   return (
     <div>
       <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-      <ul className="mt-3 space-y-2">
+      <ul className="mt-4 space-y-2.5">
         {links.map((l) => (
           <li key={l.href}>
             <Link
               href={l.href}
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="inline-block text-sm leading-6 text-muted-foreground transition-all duration-200 hover:translate-x-0.5 hover:text-foreground"
             >
               {l.label}
             </Link>
@@ -102,19 +104,38 @@ export function StorefrontFooter({
   ].filter(Boolean) as { href: string; label: string; Icon: typeof TwitterIcon }[];
 
   return (
-    <footer className="border-t border-border bg-card">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {/* About */}
-          <div className="col-span-2 sm:col-span-2 lg:col-span-1">
-            <span className="font-heading text-lg font-semibold tracking-tight text-foreground">
-              {storeName}
-            </span>
-            <p className="mt-3 max-w-xs text-sm text-muted-foreground">
+    <footer className="relative bg-muted/30">
+      {/* Top accent — a thin teal gradient divider above the footer. */}
+      <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+
+      <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-5">
+          {/* Brand — wider column */}
+          <div className="col-span-2 lg:col-span-2">
+            <Link
+              href="/"
+              aria-label={storeName}
+              className="group inline-flex items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              <span className="font-heading text-xl font-bold tracking-tighter text-foreground">
+                {storeName}
+                <span className="text-primary transition-colors group-hover:text-primary/80">
+                  .
+                </span>
+              </span>
+            </Link>
+
+            <p className="mt-3 max-w-xs text-sm leading-6 text-muted-foreground">
               Quality products, fair prices, delivered to your door. Shop the
               latest with confidence.
             </p>
-            <p className="mt-3 text-xs text-muted-foreground">{storeAddress}</p>
+
+            <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <MapPin className="size-3.5 shrink-0 text-primary" />
+              {storeAddress}
+            </p>
+
+            <NewsletterForm />
           </div>
 
           <FooterColumn title="Shop" links={SHOP_LINKS} />
@@ -123,12 +144,12 @@ export function StorefrontFooter({
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
+        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} {storeName}. All rights reserved.
           </p>
           {socials.length > 0 && (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
               {socials.map(({ href, label, Icon }) => (
                 <a
                   key={label}
@@ -136,9 +157,9 @@ export function StorefrontFooter({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  className="text-muted-foreground transition-colors hover:text-foreground"
+                  className="flex size-9 items-center justify-center rounded-full text-muted-foreground transition-all duration-300 hover:bg-primary/10 hover:text-primary"
                 >
-                  <Icon className="size-5" />
+                  <Icon className="size-[18px]" />
                 </a>
               ))}
             </div>

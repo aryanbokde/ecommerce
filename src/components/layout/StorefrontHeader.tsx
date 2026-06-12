@@ -1,8 +1,9 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useCart } from "@/hooks/useCart";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Menu,
   Search,
@@ -12,10 +13,12 @@ import {
   LayoutDashboard,
   LogOut,
 } from "lucide-react";
+import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 import { useScrolled } from "@/hooks/useScrolled";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Avatar,
@@ -38,6 +41,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { CategoryNav } from "@/components/layout/CategoryNav";
+import { SearchBar } from "@/components/shared/SearchBar";
 
 function initials(name?: string | null): string {
   if (!name) return "U";
@@ -50,6 +54,8 @@ function initials(name?: string | null): string {
     .toUpperCase();
 }
 
+// Refined wordmark — bolder, tighter tracking, with a brand-teal dot accent.
+// The admin-set logo image (unknown dimensions) is rendered as-is when present.
 function Logo({
   storeName,
   storeLogo,
@@ -60,18 +66,26 @@ function Logo({
   return (
     <Link
       href="/"
-      className="font-heading text-lg font-semibold tracking-tight text-foreground"
+      aria-label={storeName}
+      className="group flex items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
     >
       {storeLogo ? (
         // eslint-disable-next-line @next/next/no-img-element -- admin-set external logo of unknown dimensions
         <img src={storeLogo} alt={storeName} className="h-7 w-auto" />
       ) : (
-        storeName
+        <span className="font-heading text-xl font-bold tracking-tighter text-foreground transition-colors">
+          {storeName}
+          <span className="text-primary transition-colors group-hover:text-primary/80">
+            .
+          </span>
+        </span>
       )}
     </Link>
   );
 }
 
+// Cart icon + count badge. The badge keyframes a small spring "pop" whenever the
+// count changes (key={count} forces a fresh mount → enter animation).
 function CartButton({ count }: { count: number }) {
   return (
     <Button
@@ -80,14 +94,23 @@ function CartButton({ count }: { count: number }) {
       variant="ghost"
       size="icon"
       aria-label={`Cart${count > 0 ? `, ${count} items` : ""}`}
-      className="relative"
+      className="relative rounded-lg transition-colors hover:bg-muted"
     >
       <ShoppingCart />
-      {count > 0 && (
-        <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
-          {count > 99 ? "99+" : count}
-        </span>
-      )}
+      <AnimatePresence>
+        {count > 0 && (
+          <motion.span
+            key={count}
+            initial={{ scale: 0.4, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.4, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 500, damping: 22 }}
+            className="absolute -right-1 -top-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground ring-2 ring-background"
+          >
+            {count > 99 ? "99+" : count}
+          </motion.span>
+        )}
+      </AnimatePresence>
     </Button>
   );
 }
@@ -96,15 +119,27 @@ function UserMenu() {
   const { user, isCustomer, isAdmin, logout } = useAuth();
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
-        <Avatar size="sm">
-          {user?.image ? <AvatarImage src={user.image} alt={user.name ?? ""} /> : null}
+      <DropdownMenuTrigger className="rounded-full outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring/50">
+        <Avatar
+          size="sm"
+          className="ring-2 ring-border ring-offset-1 ring-offset-background transition-all hover:ring-primary/40"
+        >
+          {user?.image ? (
+            <AvatarImage src={user.image} alt={user.name ?? ""} />
+          ) : null}
           <AvatarFallback>{initials(user?.name)}</AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-44">
-        <DropdownMenuLabel className="truncate">
-          {user?.name ?? "Account"}
+      <DropdownMenuContent align="end" className="min-w-52">
+        <DropdownMenuLabel className="flex flex-col gap-0.5">
+          <span className="truncate text-sm font-medium text-foreground">
+            {user?.name ?? "Account"}
+          </span>
+          {user?.email && (
+            <span className="truncate text-xs font-normal text-muted-foreground">
+              {user.email}
+            </span>
+          )}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
@@ -154,14 +189,39 @@ function AuthButtons() {
       >
         Login
       </Button>
-      <Button
-        render={<Link href="/register" />}
-        nativeButton={false}
-        size="sm"
-      >
+      <Button render={<Link href="/register" />} nativeButton={false} size="sm">
         Sign up
       </Button>
     </div>
+  );
+}
+
+// Simple search field for the mobile sheet — submits to the products search page
+// (same destination as the desktop SearchBar's "see all results"). No new API.
+function MobileSearch({ onNavigate }: { onNavigate?: () => void }) {
+  const router = useRouter();
+  const [q, setQ] = useState("");
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = q.trim();
+    router.push(
+      trimmed ? `/products?search=${encodeURIComponent(trimmed)}` : "/products"
+    );
+    onNavigate?.();
+  }
+
+  return (
+    <form onSubmit={submit} className="relative">
+      <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Search products…"
+        aria-label="Search products"
+        className="pl-9"
+      />
+    </form>
   );
 }
 
@@ -187,12 +247,13 @@ export function StorefrontHeader({
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 w-full border-b border-border bg-background/95 transition-shadow",
-        isScrolled &&
-          "shadow-sm supports-[backdrop-filter]:bg-background/80 supports-[backdrop-filter]:backdrop-blur"
+        "sticky top-0 z-40 w-full transition-all duration-300",
+        isScrolled
+          ? "border-b border-border bg-background/80 shadow-sm supports-[backdrop-filter]:bg-background/65 supports-[backdrop-filter]:backdrop-blur-xl"
+          : "border-b border-transparent bg-background/60 supports-[backdrop-filter]:bg-background/40 supports-[backdrop-filter]:backdrop-blur-md"
       )}
     >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:h-[4.5rem] lg:px-8">
         {/* Left: mobile menu + logo */}
         <div className="flex items-center gap-2">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -201,7 +262,7 @@ export function StorefrontHeader({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="lg:hidden"
+                  className="rounded-lg lg:hidden"
                   aria-label="Open menu"
                 />
               }
@@ -212,7 +273,8 @@ export function StorefrontHeader({
               <SheetHeader>
                 <SheetTitle>Browse</SheetTitle>
               </SheetHeader>
-              <div className="flex flex-col gap-4 overflow-y-auto px-4 pb-4">
+              <div className="flex flex-col gap-5 overflow-y-auto px-4 pb-4">
+                <MobileSearch onNavigate={() => setMobileOpen(false)} />
                 <Suspense
                   fallback={<Skeleton className="h-40 w-full rounded-md" />}
                 >
@@ -260,12 +322,18 @@ export function StorefrontHeader({
 
         {/* Right: search, cart, auth */}
         <div className="flex items-center gap-1">
+          {/* Inline expanding search with autocomplete (desktop + tablet). */}
+          <div className="hidden sm:block">
+            <SearchBar />
+          </div>
+          {/* Mobile: a plain link to the search page (the field lives in the sheet). */}
           <Button
-            render={<Link href="/shop" />}
+            render={<Link href="/products" />}
             nativeButton={false}
             variant="ghost"
             size="icon"
             aria-label="Search products"
+            className="rounded-lg transition-colors hover:bg-muted sm:hidden"
           >
             <Search />
           </Button>

@@ -40,6 +40,15 @@ interface InvProduct {
   lastMovement: { type: string; quantity: number; createdAt: string } | null;
 }
 
+interface InvSummary {
+  total: number;
+  out: number;
+  low: number;
+  inStock: number;
+  units: number;
+  value: number;
+}
+
 interface ServerFilters {
   page: number;
   limit: number;
@@ -47,6 +56,9 @@ interface ServerFilters {
   stockStatus: string; // all | low | out | in
   tick: number;
 }
+
+const inr = (v: number) =>
+  `₹${v.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
 const PER_PAGE_OPTIONS = [10, 20, 50, 100] as const;
 
@@ -67,8 +79,10 @@ export default function InventoryPage() {
   const [result, setResult] = useState<{
     key: string;
     products: InvProduct[];
+    total: number;
     page: number;
     totalPages: number;
+    summary: InvSummary | null;
   } | null>(null);
 
   const [adjustTarget, setAdjustTarget] = useState<InvProduct | null>(null);
@@ -96,13 +110,22 @@ export default function InventoryPage() {
         setResult({
           key,
           products: d.products ?? [],
+          total: d.total ?? 0,
           page: d.page ?? 1,
           totalPages: d.totalPages ?? 1,
+          summary: d.summary ?? null,
         });
       })
       .catch(() => {
         if (!ctrl.signal.aborted)
-          setResult({ key, products: [], page: 1, totalPages: 1 });
+          setResult({
+            key,
+            products: [],
+            total: 0,
+            page: 1,
+            totalPages: 1,
+            summary: null,
+          });
       });
     return () => ctrl.abort();
   }, [server, key]);
@@ -123,7 +146,13 @@ export default function InventoryPage() {
       render: (p) =>
         p.image ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={p.image} alt="" className="size-10 rounded-md object-cover" />
+          <img
+            src={p.image}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="size-10 rounded-md object-cover ring-1 ring-border"
+          />
         ) : (
           <div className="flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
             <ImageIcon className="size-4" />
@@ -205,6 +234,21 @@ export default function InventoryPage() {
         </Button>
       }
     >
+      {/* Inventory health summary */}
+      {result?.summary && (
+        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <Tile label="Total SKUs" value={result.summary.total} />
+          <Tile label="In stock" value={result.summary.inStock} tone="green" />
+          <Tile label="Low stock" value={result.summary.low} tone="amber" />
+          <Tile label="Out of stock" value={result.summary.out} tone="red" />
+          <Tile
+            label="Stock value"
+            value={inr(result.summary.value)}
+            sub={`${result.summary.units.toLocaleString("en-IN")} units`}
+          />
+        </div>
+      )}
+
       <DataTable
         columns={columns}
         data={result?.products ?? []}
@@ -302,5 +346,35 @@ export default function InventoryPage() {
         <BulkRestockDialog open onOpenChange={setBulkOpen} onDone={onStockChanged} />
       )}
     </DashboardShell>
+  );
+}
+
+function Tile({
+  label,
+  value,
+  sub,
+  tone = "default",
+}: {
+  label: string;
+  value: number | string;
+  sub?: string;
+  tone?: "default" | "green" | "amber" | "red";
+}) {
+  const toneCls =
+    tone === "green"
+      ? "text-green-600 dark:text-green-400"
+      : tone === "amber"
+        ? "text-amber-600 dark:text-amber-400"
+        : tone === "red"
+          ? "text-rose-600 dark:text-rose-400"
+          : "text-foreground";
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className={cn("mt-1 text-xl font-semibold tabular-nums", toneCls)}>
+        {value}
+      </p>
+      {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
+    </div>
   );
 }

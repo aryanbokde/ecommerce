@@ -7,6 +7,7 @@ import { Prisma } from "@/generated/prisma";
 import prisma from "@/server/db";
 import {
   adjustStock,
+  getInventorySummary,
   type StockMovementType,
 } from "@/server/services/inventory.service";
 
@@ -45,7 +46,7 @@ export const GET = withErrorHandler(async (req: NextRequest) => {
       : {}),
   };
 
-  const [products, total] = await Promise.all([
+  const [products, total, summary] = await Promise.all([
     prisma.product.findMany({
       where,
       orderBy: { stock: "asc" },
@@ -66,6 +67,7 @@ export const GET = withErrorHandler(async (req: NextRequest) => {
       },
     }),
     prisma.product.count({ where }),
+    getInventorySummary(),
   ]);
 
   const data = products.map((p) => ({
@@ -84,7 +86,13 @@ export const GET = withErrorHandler(async (req: NextRequest) => {
   return NextResponse.json({
     success: true,
     message: "Inventory fetched",
-    data: { products: data, total, page, totalPages: Math.ceil(total / limit) },
+    data: {
+      products: data,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      summary,
+    },
   });
 });
 
