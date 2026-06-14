@@ -25,7 +25,15 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   // Self-contained production output (.next/standalone) for slim Docker images.
-  output: "standalone",
+  // NOT on Vercel: Vercel builds its own output, and `standalone` + heavy Node
+  // packages (razorpay/winston) breaks "collect page data" there. Vercel sets
+  // VERCEL=1 at build time, so fall back to the default output on Vercel.
+  output: process.env.VERCEL ? undefined : "standalone",
+
+  // Heavy, Node-only packages that don't bundle cleanly — keep them external so
+  // the tracer/bundler doesn't try to instantiate them during page-data
+  // collection (which 500s the build on Vercel for the razorpay webhook route).
+  serverExternalPackages: ["razorpay", "winston", "winston-daily-rotate-file"],
 
   // Don't advertise the framework.
   poweredByHeader: false,

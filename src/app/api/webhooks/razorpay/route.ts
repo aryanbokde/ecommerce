@@ -6,6 +6,12 @@ import {
 } from "@/server/services/order.service";
 import logger from "@/lib/logger";
 
+// Node runtime (razorpay SDK + winston are Node-only) and always dynamic — it's
+// a server-to-server webhook, never prerendered. Declaring both stops Next from
+// statically collecting/bundling this route in a way that breaks the build.
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 // Razorpay webhook — invoked server-to-server by Razorpay (NO user session).
 // Authenticity is enforced via the X-Razorpay-Signature HMAC, not auth.
 // This is a RELIABILITY BACKSTOP: verify-payment is the primary path that
