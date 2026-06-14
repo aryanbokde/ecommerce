@@ -10,8 +10,9 @@ import {
 } from "@/components/shared/ProductFilters";
 import type { Product, Category } from "@/types";
 import { getCategoryTree } from "@/server/services/category.service";
+import { getProducts } from "@/server/services/product.service";
+import { productQuerySchema } from "@/server/validators/product.schema";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 const PAGE_SIZE = 12;
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -52,19 +53,19 @@ export async function generateMetadata({
   };
 }
 
+// Calls the service DIRECTLY — a Server Component must NOT fetch its own API
+// route (deadlock risk, and a wrong NEXT_PUBLIC_APP_URL on the host silently
+// yields zero products). Storefront only ever shows active products. JSON-
+// serialize so Prisma Decimals/Dates arrive as plain values for the client grid.
 async function fetchProducts(filters: Record<string, string>) {
-  const params = new URLSearchParams(filters);
-  params.set("limit", String(PAGE_SIZE));
-  // Storefront only ever shows active products (the shared /api/products list
-  // returns inactive ones too, for admin/manager management screens).
-  params.set("isActive", "true");
   try {
-    const res = await fetch(`${BASE_URL}/api/products?${params.toString()}`, {
-      cache: "no-store",
+    const query = productQuerySchema.parse({
+      ...filters,
+      limit: String(PAGE_SIZE),
+      isActive: "true",
     });
-    if (!res.ok) return { products: [], total: 0, page: 1, totalPages: 0 };
-    const json = await res.json();
-    return json.data as {
+    const result = await getProducts(query);
+    return JSON.parse(JSON.stringify(result)) as {
       products: Product[];
       total: number;
       page: number;

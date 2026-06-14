@@ -10,9 +10,10 @@ import {
 } from "@/components/shared/ProductFilters";
 import { PageHeader } from "@/components/layout/PageHeader";
 import prisma from "@/server/db";
+import { getProducts } from "@/server/services/product.service";
+import { productQuerySchema } from "@/server/validators/product.schema";
 import type { Product, Category } from "@/types";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 const PAGE_SIZE = 12;
 
 type ShopSearchParams = {
@@ -118,42 +119,54 @@ type ProductListResult = {
 };
 
 // Category products with the same filter/sort/pagination knobs as /products.
-// Fetched via the API so Decimal money fields arrive JSON-serialized for the
-// client grid (a direct service call would hand back Prisma Decimals).
+// Calls the service DIRECTLY (a Server Component must NOT fetch its own API
+// route — that can deadlock and, when NEXT_PUBLIC_APP_URL is wrong on a host,
+// silently returns zero products). JSON-serialize so Prisma Decimals/Dates
+// arrive as plain values for the client grid (same shape as /api/products).
 async function getProductsForCategory(
   categoryId: string,
   sp: ShopSearchParams
 ): Promise<ProductListResult> {
-  const params = new URLSearchParams();
-  params.set("categoryId", categoryId);
-  params.set("isActive", "true");
-  params.set("limit", String(PAGE_SIZE));
-  for (const key of ["search", "minPrice", "maxPrice", "sortBy", "sortOrder", "page"] as const) {
-    if (sp[key]) params.set(key, sp[key] as string);
-  }
   try {
-    const res = await fetch(`${BASE_URL}/api/products?${params.toString()}`, {
-      cache: "no-store",
+    const query = productQuerySchema.parse({
+      categoryId,
+      isActive: "true",
+      limit: String(PAGE_SIZE),
+      ...(sp.search ? { search: sp.search } : {}),
+      ...(sp.minPrice ? { minPrice: sp.minPrice } : {}),
+      ...(sp.maxPrice ? { maxPrice: sp.maxPrice } : {}),
+      ...(sp.sortBy ? { sortBy: sp.sortBy } : {}),
+      ...(sp.sortOrder ? { sortOrder: sp.sortOrder } : {}),
+      ...(sp.page ? { page: sp.page } : {}),
     });
-    if (!res.ok) return { products: [], total: 0, page: 1, totalPages: 0 };
-    const json = await res.json();
-    return json.data as ProductListResult;
+    const result = await getProducts(query);
+    return JSON.parse(JSON.stringify(result)) as ProductListResult;
   } catch {
     return { products: [], total: 0, page: 1, totalPages: 0 };
   }
 }
 
-// Flat list of categories that actually have products — for the filter sidebar.
+// Flat list of categories (parents AND children) that actually have products —
+// for the filter sidebar. Products live on leaf/child categories, so filtering
+// only parents (which have 0 direct products) wrongly yields "No categories".
 async function getNonEmptyCategories(): Promise<Category[]> {
-  const cats = await getCategoriesWithCounts();
-  return cats
-    .filter((c) => c.productCount > 0)
-    .map((c) => ({
-      id: c.id,
-      name: c.name,
-      slug: c.slug,
-      productCount: c.productCount,
-    })) as Category[];
+  try {
+    const rows = await prisma.category.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      include: { _count: { select: { products: true } } },
+    });
+    return rows
+      .filter((c) => c._count.products > 0)
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        productCount: c._count.products,
+      })) as Category[];
+  } catch {
+    return [];
+  }
 }
 
 export async function generateMetadata({
