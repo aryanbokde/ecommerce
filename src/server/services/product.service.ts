@@ -55,12 +55,17 @@ async function findProductOrThrow(id: string) {
   return product;
 }
 
-export async function getProducts(filters: ProductQuery) {
+// `categoryIds` (storefront only) matches a category AND its descendants; it
+// takes precedence over the single `categoryId` when present.
+export async function getProducts(
+  filters: ProductQuery & { categoryIds?: string[] }
+) {
   const {
     page,
     limit,
     search,
     categoryId,
+    categoryIds,
     minPrice,
     maxPrice,
     isFeatured,
@@ -72,7 +77,11 @@ export async function getProducts(filters: ProductQuery) {
   const where: Prisma.ProductWhereInput = {
     ...(isActive !== undefined ? { isActive } : {}),
     ...(isFeatured !== undefined ? { isFeatured } : {}),
-    ...(categoryId ? { categoryId } : {}),
+    ...(categoryIds && categoryIds.length
+      ? { categoryId: { in: categoryIds } }
+      : categoryId
+        ? { categoryId }
+        : {}),
     ...(search
       ? {
           OR: [

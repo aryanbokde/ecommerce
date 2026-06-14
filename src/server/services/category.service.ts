@@ -121,6 +121,38 @@ export async function getCategoryTree(): Promise<CategoryNode[]> {
   return roots;
 }
 
+/**
+ * A category id plus every descendant id (children, grandchildren, …). Used by
+ * the storefront so a PARENT category page shows products from its whole
+ * subtree, not just the (usually empty) parent itself.
+ */
+export async function getCategoryAndDescendantIds(
+  categoryId: string
+): Promise<string[]> {
+  const all = await prisma.category.findMany({
+    select: { id: true, parentId: true },
+  });
+  const childrenByParent = new Map<string, string[]>();
+  for (const c of all) {
+    if (!c.parentId) continue;
+    const list = childrenByParent.get(c.parentId) ?? [];
+    list.push(c.id);
+    childrenByParent.set(c.parentId, list);
+  }
+
+  const result: string[] = [];
+  const seen = new Set<string>();
+  const stack = [categoryId];
+  while (stack.length) {
+    const id = stack.pop()!;
+    if (seen.has(id)) continue; // guards against accidental cycles
+    seen.add(id);
+    result.push(id);
+    for (const child of childrenByParent.get(id) ?? []) stack.push(child);
+  }
+  return result;
+}
+
 /** Single category by slug, with attached product count. */
 export async function getCategoryBySlug(slug: string) {
   const category = await prisma.category.findUnique({

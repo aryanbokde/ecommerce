@@ -11,6 +11,7 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import prisma from "@/server/db";
 import { getProducts } from "@/server/services/product.service";
+import { getCategoryAndDescendantIds } from "@/server/services/category.service";
 import { productQuerySchema } from "@/server/validators/product.schema";
 import type { Product, Category } from "@/types";
 
@@ -75,6 +76,16 @@ async function getCategoriesWithCounts(): Promise<CategoryWithMeta[]> {
       childrenByParent.set(c.parentId, list);
     }
 
+    // A parent's card count = its own products + every descendant's, so empty
+    // parents still show the right total (and never read as "0 products").
+    const directCount = new Map(rows.map((c) => [c.id, c._count.products]));
+    const subtreeCount = (id: string): number => {
+      let sum = directCount.get(id) ?? 0;
+      for (const child of childrenByParent.get(id) ?? [])
+        sum += subtreeCount(child.id);
+      return sum;
+    };
+
     return rows
       .filter((c) => !c.parentId)
       .map((c) => ({
@@ -84,7 +95,7 @@ async function getCategoriesWithCounts(): Promise<CategoryWithMeta[]> {
         description: c.description,
         image: c.image,
         parentId: c.parentId,
-        productCount: c._count.products,
+        productCount: subtreeCount(c.id),
         children: childrenByParent.get(c.id) ?? [],
       }));
   } catch {
@@ -129,7 +140,6 @@ async function getProductsForCategory(
 ): Promise<ProductListResult> {
   try {
     const query = productQuerySchema.parse({
-      categoryId,
       isActive: "true",
       limit: String(PAGE_SIZE),
       ...(sp.search ? { search: sp.search } : {}),
@@ -139,7 +149,9 @@ async function getProductsForCategory(
       ...(sp.sortOrder ? { sortOrder: sp.sortOrder } : {}),
       ...(sp.page ? { page: sp.page } : {}),
     });
-    const result = await getProducts(query);
+    // Parent → its whole subtree, so a parent category lists child products too.
+    const categoryIds = await getCategoryAndDescendantIds(categoryId);
+    const result = await getProducts({ ...query, categoryIds });
     return JSON.parse(JSON.stringify(result)) as ProductListResult;
   } catch {
     return { products: [], total: 0, page: 1, totalPages: 0 };
