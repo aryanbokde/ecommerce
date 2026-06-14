@@ -146,9 +146,10 @@ export function AddressStep() {
         onSuccess={handleCreated}
       />
 
-      <div className="flex justify-end border-t border-border pt-5">
+      <div className="flex border-t border-border pt-5 sm:justify-end">
         <Button
           size="lg"
+          className="w-full sm:w-auto"
           disabled={!selectedAddressId}
           onClick={() => setStep("payment")}
         >

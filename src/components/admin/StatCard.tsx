@@ -12,7 +12,7 @@ const ACCENT_CLASSES: Record<Accent, string> = {
   emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
   blue: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  violet: "bg-brand-blue/12 text-brand-blue",
   rose: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
 };
 

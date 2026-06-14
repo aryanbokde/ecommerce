@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
+import { FileText } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 // Shared layout for static policy / info pages (Privacy, Terms, Returns,
-// Shipping, Contact). Renders a clean, readable document with a titled header,
-// "last updated" line, optional intro, and auto-numbered sections — without
+// Shipping, Contact). Renders the shared PageHeader band, then a clean,
+// readable document with optional intro and auto-numbered sections — without
 // needing the Tailwind typography plugin (not installed in this project).
 
 export interface LegalSection {
@@ -19,16 +21,14 @@ interface LegalPageProps {
 
 export function LegalPage({ title, updated, intro, sections }: LegalPageProps) {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
-      <header className="border-b border-border pb-6">
-        <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground">
-          {title}
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Last updated: {updated}
-        </p>
-      </header>
-
+    <>
+      <PageHeader
+        title={title}
+        breadcrumb={[{ label: "Home", href: "/" }, { label: title }]}
+        icon={FileText}
+        subtitle={`Last updated: ${updated}`}
+      />
+      <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
       {intro && (
         <div className="mt-6 space-y-3 text-[15px] leading-7 text-muted-foreground">
           {intro}
@@ -47,6 +47,7 @@ export function LegalPage({ title, updated, intro, sections }: LegalPageProps) {
           </section>
         ))}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

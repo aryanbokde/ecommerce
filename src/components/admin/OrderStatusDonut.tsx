@@ -21,16 +21,17 @@ interface StatusDatum {
 
 // Concrete colors mirroring OrderStatusBadge's tailwind classes (which only
 // expose class names, not values usable by an SVG fill).
+// Palette series: sky · blue · yellow · orange · (green/red kept semantic).
 const STATUS_COLOR: Record<string, string> = {
-  pending: "#6b7280", // gray-500
-  confirmed: "#3b82f6", // blue-500
-  processing: "#f59e0b", // amber-500
-  shipped: "#8b5cf6", // violet-500
-  delivered: "#22c55e", // green-500
-  cancelled: "#ef4444", // red-500
+  pending: "#8ecae6", // sky
+  confirmed: "#219ebc", // blue
+  processing: "#ffb703", // yellow
+  shipped: "#fb8500", // orange
+  delivered: "#16a34a", // green (success)
+  cancelled: "#ef4444", // red (error)
 };
 
-const colorFor = (status: string) => STATUS_COLOR[status] ?? "#94a3b8";
+const colorFor = (status: string) => STATUS_COLOR[status] ?? "#023047";
 
 interface TooltipPayload {
   payload: StatusDatum;

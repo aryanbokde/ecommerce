@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QA · Orders (Customer)</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="orders">
+<header class="page">
+  <h1>6 · Orders (Customer)</h1>
+  <p>Order &amp; Return models — list, detail, cancel, return request, reorder, invoice</p>
+</header>
+<div class="wrap">
+  <a class="back" href="index.html">← All modules</a>
+  <div class="cards">
+    <div class="card"><div class="n" id="c-total">0</div><div class="l">Total</div></div>
+    <div class="card pass"><div class="n" id="c-pass">0</div><div class="l">Pass</div></div>
+    <div class="card fail"><div class="n" id="c-fail">0</div><div class="l">Fail</div></div>
+    <div class="card pend"><div class="n" id="c-pend">0</div><div class="l">Untested</div></div>
+  </div>
+  <div class="toolbar">
+    <input id="search" type="search" placeholder="Search test cases…" />
+    <select id="f-type"><option value="">All types</option><option>Positive</option><option>Negative</option><option>Boundary</option></select>
+    <select id="f-prio"><option value="">All priorities</option><option>High</option><option>Medium</option><option>Low</option></select>
+  </div>
+
+  <section class="suite">
+    <h2>6.1 Orders list — /orders</h2>
+    <p class="sub">Tabs: All · Active · Delivered · Cancelled · Returned. Header pill = total orders.</p>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-ORD-001" data-type="Positive" data-prio="High"><td class="id">TC-ORD-001</td><td>List shows own orders</td><td>Customer with orders</td><td class="steps"><ol><li>Open /orders</li></ol></td><td>—</td><td>Own order cards; status + payment badges; count pill</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ORD-002" data-type="Positive" data-prio="Medium"><td class="id">TC-ORD-002</td><td>Status tabs filter</td><td>Mixed statuses</td><td class="steps"><ol><li>Switch each tab</li></ol></td><td><span class="data">?status=active…</span></td><td>Only matching orders; "Shipped" badge orange (palette)</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ORD-003" data-type="Negative" data-prio="High"><td class="id">TC-ORD-003</td><td>Cannot see others' orders</td><td>Two customers</td><td class="steps"><ol><li>As A, open B's order id URL</li></ol></td><td><span class="data">/orders/{B-id}</span></td><td>404/redirect — scoped to self only</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ORD-004" data-type="Positive" data-prio="Low"><td class="id">TC-ORD-004</td><td>Empty tab state</td><td>No returned orders</td><td class="steps"><ol><li>Open Returned tab</li></ol></td><td>—</td><td>Friendly empty message</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="suite">
+    <h2>6.2 Order detail — /orders/{id}</h2>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-ORD-005" data-type="Positive" data-prio="High"><td class="id">TC-ORD-005</td><td>Detail renders</td><td>Own order</td><td class="steps"><ol><li>Open an order</li></ol></td><td>—</td><td>Header "Order {number}" + status pill + Placed date; timeline, items, summary, payment, address</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ORD-006" data-type="Positive" data-prio="Medium"><td class="id">TC-ORD-006</td><td>Success banner after checkout</td><td>?success=true</td><td class="steps"><ol><li>Land here post-order</li></ol></td><td>—</td><td>Green "Order placed successfully" banner</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ORD-007" data-type="Positive" data-prio="High"><td class="id">TC-ORD-007</td><td>Cancel order (allowed state)</td><td>Pending/confirmed; cancellations enabled</td><td class="steps"><ol><li>Cancel order → confirm</li></ol></td><td>—</td><td>Status → cancelled; stock returned; cancel hidden after</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ORD-008" data-type="Negative" data-prio="Medium"><td class="id">TC-ORD-008</td><td>Cancel disabled when not allowed</td><td>shipped/delivered OR cancellations off</td><td class="steps"><ol><li>Open such an order</li></ol></td><td>—</td><td>No Cancel button (setting/state respected)</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ORD-009" data-type="Positive" data-prio="High"><td class="id">TC-ORD-009</td><td>Request return (delivered, in window)</td><td>delivered, returns on, within window, none yet</td><td class="steps"><ol><li>Request return → choose reason → submit</li></ol></td><td><span class="data">reason text</span></td><td>Return request created (status requested); shown on order</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ORD-010" data-type="Negative" data-prio="Medium"><td class="id">TC-ORD-010</td><td>Return not offered outside window/state</td><td>not delivered OR window passed OR already requested OR returns off</td><td class="steps"><ol><li>Open such an order</li></ol></td><td>—</td><td>Return control hidden/blocked appropriately</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ORD-011" data-type="Negative" data-prio="Low"><td class="id">TC-ORD-011</td><td>Return reason required</td><td>Return form open</td><td class="steps"><ol><li>Submit with empty reason</li></ol></td><td>—</td><td>Validation; not submitted</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ORD-012" data-type="Positive" data-prio="Medium"><td class="id">TC-ORD-012</td><td>Reorder</td><td>Past order</td><td class="steps"><ol><li>Reorder from a card</li></ol></td><td>—</td><td>Items re-added to cart (respecting stock)</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ORD-013" data-type="Positive" data-prio="Low"><td class="id">TC-ORD-013</td><td>Track / contact / invoice actions</td><td>—</td><td class="steps"><ol><li>Click Track (→timeline), Contact Support, Download Invoice</li></ol></td><td>—</td><td>Track scrolls to timeline; mailto opens; invoice = known UI-only TODO</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <footer class="note">Module 6 of 11 · <a href="index.html">back to index</a></footer>
+</div>
+<script src="filter.js"></script>
+</body>
+</html>

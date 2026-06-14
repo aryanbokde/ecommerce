@@ -55,12 +55,12 @@ function Badges({
   return (
     <div className="pointer-events-none absolute left-2 top-2 z-10 flex flex-col gap-1">
       {onSale && (
-        <span className="rounded-md bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-sm">
+        <span className="rounded-md bg-highlight px-1.5 py-0.5 text-[10px] font-semibold text-brand-navy shadow-sm">
           Sale
         </span>
       )}
       {isNew && !onSale && (
-        <span className="rounded-md bg-emerald-600 px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-sm">
+        <span className="rounded-md bg-brand-blue px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-sm">
           New
         </span>
       )}
@@ -110,7 +110,7 @@ function Stars({
             className={cn(
               "size-3.5",
               i < Math.round(rating)
-                ? "fill-amber-400 text-amber-400"
+                ? "fill-highlight text-highlight"
                 : "text-muted-foreground/40"
             )}
           />
@@ -158,8 +158,8 @@ function PriceRow({
           </span>
           <span
             className={cn(
-              "text-xs font-medium",
-              light ? "text-emerald-300" : "text-red-600"
+              "text-xs font-semibold",
+              light ? "text-[#ffd9a3]" : "text-primary"
             )}
           >
             {savings}% off
@@ -340,7 +340,7 @@ export function ProductCard({
             </span>
           )}
           {!onSale && isNew && (
-            <span className="absolute right-1.5 top-1.5 z-10 rounded bg-emerald-600 px-1 py-0.5 text-[9px] font-semibold text-white">
+            <span className="absolute right-1.5 top-1.5 z-10 rounded bg-brand-blue px-1 py-0.5 text-[9px] font-semibold text-white">
               New
             </span>
           )}

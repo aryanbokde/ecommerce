@@ -35,6 +35,15 @@
   --color-success: var(--success);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
+  /* Brand palette tokens (saturated) — applied to specific accents (links,
+     stars, badges, gradients) so the neutral shadcn surface tokens above stay
+     soft/premium. See :root / .dark for values. */
+  --color-primary-hover: var(--primary-hover);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-sky: var(--brand-sky);
+  --color-brand-navy: var(--brand-navy);
+  --color-highlight: var(--highlight);
+  --color-accent-soft: var(--accent-soft);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -58,82 +67,103 @@
   /* Tells the UA to render native controls/scrollbars in light. Each theme
      block below resets this so form widgets match the active palette. */
   color-scheme: light;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  /* ── Light theme (default) — palette: sky #8ECAE6 · blue #219EBC ·
+     navy #023047 · yellow #FFB703 · orange #FB8500 ───────────────────────────
+     Neutral shadcn surfaces (secondary/accent/muted) are kept SOFT & sky-tinted
+     so chips, menus and sidebars read premium; the saturated brand colors live
+     in the brand-* / highlight tokens below and are applied to specific accents
+     (links, stars, badges, gradients, CTAs). */
+  --background: #f8fafb;
+  --foreground: #023047;
+  --card: #ffffff;
+  --card-foreground: #023047;
+  --popover: #ffffff;
+  --popover-foreground: #023047;
+  --primary: #fb8500;            /* orange — primary CTA */
+  --primary-foreground: #ffffff;
+  --secondary: #eef5f8;          /* soft sky-gray neutral surface */
+  --secondary-foreground: #023047;
+  --muted: #f1f6f8;
+  --muted-foreground: #334e5c;   /* muted body text */
+  --accent: #e6f3f8;             /* soft sky hover/focus surface (menus) */
+  --accent-foreground: #023047;
   --success: #16a34a;
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --destructive: #dc2626;
+  --border: #e2ebef;
+  --input: #e2ebef;
+  --ring: #219ebc;               /* blue focus ring */
+  --chart-1: #fb8500;            /* orange */
+  --chart-2: #219ebc;            /* blue */
+  --chart-3: #8ecae6;            /* sky */
+  --chart-4: #ffb703;            /* yellow */
+  --chart-5: #023047;            /* navy */
+  /* Brand accents (saturated) */
+  --primary-hover: #e07700;      /* darker orange */
+  --brand-blue: #219ebc;         /* links, secondary accent */
+  --brand-sky: #8ecae6;
+  --brand-navy: #023047;
+  --highlight: #ffb703;          /* yellow — badges, rating stars */
+  --accent-soft: #8ecae6;        /* sky — soft tints */
   --radius: 0.625rem;
   /* Site-wide fonts — Inter body, Poppins headings (loaded in root layout).
      Storefront + backend share the family; backend re-tunes weights/sizes. */
   --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
   --font-heading: var(--font-poppins), var(--font-inter), system-ui, sans-serif;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #023047;
+  --sidebar-primary: #fb8500;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e6f3f8;
+  --sidebar-accent-foreground: #023047;
+  --sidebar-border: #e2ebef;
+  --sidebar-ring: #219ebc;
 }
 
 .dark {
-  /* Bazaar dark theme — bg #0a0e16 · panel #11161f · surface #151b26
-     Primary(teal) #14b8a6 · Accent(orange) #f97316 · Success #22c55e */
+  /* ── Dark theme (toggle) — deep navy base ──────────────────────────────────
+     bg navy #023047 · surface #06324a · orange stays the action color · sky
+     reads better than mid-blue on dark, so brand-blue → sky here. */
   color-scheme: dark;
-  --background: #0a0e16;
-  --foreground: #eef2f8;
-  --card: #11161f;
-  --card-foreground: #eef2f8;
-  --popover: #11161f;
-  --popover-foreground: #eef2f8;
-  --primary: #14b8a6;
-  --primary-foreground: #04201d;
-  --secondary: #1b2230;
-  --secondary-foreground: #eef2f8;
-  --muted: #151b26;
-  --muted-foreground: #94a3b8;
-  --accent: #f97316;
-  --accent-foreground: #1a0d03;
+  --background: #023047;
+  --foreground: #eaf4f8;
+  --card: #06324a;
+  --card-foreground: #eaf4f8;
+  --popover: #06324a;
+  --popover-foreground: #eaf4f8;
+  --primary: #fb8500;            /* orange — pops on navy */
+  --primary-foreground: #ffffff;
+  --secondary: #0c4360;          /* soft navy surface */
+  --secondary-foreground: #eaf4f8;
+  --muted: #0a3a54;
+  --muted-foreground: #8eb0c0;
+  --accent: #0e4566;             /* navy-sky hover/focus surface */
+  --accent-foreground: #eaf4f8;
   --success: #22c55e;
   --destructive: #ef4444;
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: #f97316;
-  --chart-1: #14b8a6;
-  --chart-2: #f97316;
-  --chart-3: #22c55e;
-  --chart-4: #38bdf8;
-  --chart-5: #a78bfa;
-  --sidebar: #11161f;
-  --sidebar-foreground: #eef2f8;
-  --sidebar-primary: #14b8a6;
-  --sidebar-primary-foreground: #04201d;
-  --sidebar-accent: #1b2230;
-  --sidebar-accent-foreground: #eef2f8;
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: #f97316;
+  --border: #0e4a66;             /* soft navy-light */
+  --input: #0e4a66;
+  --ring: #8ecae6;               /* sky focus ring — visible on navy */
+  --chart-1: #fb8500;            /* orange */
+  --chart-2: #8ecae6;            /* sky */
+  --chart-3: #ffb703;            /* yellow */
+  --chart-4: #219ebc;            /* blue */
+  --chart-5: #5fb0cf;            /* light blue */
+  /* Brand accents */
+  --primary-hover: #e07700;
+  --brand-blue: #8ecae6;         /* sky reads better than mid-blue on dark */
+  --brand-sky: #8ecae6;
+  --brand-navy: #023047;
+  --highlight: #ffb703;
+  --accent-soft: #8ecae6;
+  --sidebar: #06324a;
+  --sidebar-foreground: #eaf4f8;
+  --sidebar-primary: #fb8500;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #0c4360;
+  --sidebar-accent-foreground: #eaf4f8;
+  --sidebar-border: #0e4a66;
+  --sidebar-ring: #8ecae6;
 }
 
 /* Backend (Cyan dashboard) theme lives in a separate stylesheet:

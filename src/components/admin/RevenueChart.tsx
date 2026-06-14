@@ -155,12 +155,12 @@ export function RevenueChart() {
                   <linearGradient id="revFill" x1="0" y1="0" x2="0" y2="1">
                     <stop
                       offset="5%"
-                      stopColor="var(--primary)"
-                      stopOpacity={0.3}
+                      stopColor="var(--brand-blue)"
+                      stopOpacity={0.35}
                     />
                     <stop
                       offset="95%"
-                      stopColor="var(--primary)"
+                      stopColor="var(--brand-blue)"
                       stopOpacity={0}
                     />
                   </linearGradient>
@@ -194,7 +194,7 @@ export function RevenueChart() {
                 <Area
                   type="monotone"
                   dataKey="revenue"
-                  stroke="var(--primary)"
+                  stroke="var(--brand-blue)"
                   strokeWidth={2}
                   fill="url(#revFill)"
                 />

@@ -18,7 +18,7 @@ export function NewsletterSection() {
   }
 
   return (
-    <section className="bg-gradient-to-br from-primary to-indigo-700 py-14 text-white md:py-20">
+    <section className="bg-gradient-to-br from-[#FB8500] to-[#023047] py-14 text-white md:py-20">
       <div className="mx-auto max-w-2xl px-4 text-center sm:px-6 lg:px-8">
         <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-white/15">
           <Mail className="size-6" />

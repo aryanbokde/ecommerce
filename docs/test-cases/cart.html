@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QA · Cart</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="cart">
+<header class="page">
+  <h1>4 · Cart</h1>
+  <p>Cart &amp; CartItem models — add, update, remove, clear, totals, free-shipping</p>
+</header>
+<div class="wrap">
+  <a class="back" href="index.html">← All modules</a>
+  <div class="cards">
+    <div class="card"><div class="n" id="c-total">0</div><div class="l">Total</div></div>
+    <div class="card pass"><div class="n" id="c-pass">0</div><div class="l">Pass</div></div>
+    <div class="card fail"><div class="n" id="c-fail">0</div><div class="l">Fail</div></div>
+    <div class="card pend"><div class="n" id="c-pend">0</div><div class="l">Untested</div></div>
+  </div>
+  <div class="toolbar">
+    <input id="search" type="search" placeholder="Search test cases…" />
+    <select id="f-type"><option value="">All types</option><option>Positive</option><option>Negative</option><option>Boundary</option></select>
+    <select id="f-prio"><option value="">All priorities</option><option>High</option><option>Medium</option><option>Low</option></select>
+  </div>
+
+  <section class="suite">
+    <h2>4.1 Cart operations — /cart</h2>
+    <p class="sub">Free-shipping threshold ₹999, shipping ₹99, tax 18%. Guest cart in localStorage; logged-in cart in DB.</p>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-CART-001" data-type="Positive" data-prio="High"><td class="id">TC-CART-001</td><td>Add item updates cart</td><td>—</td><td class="steps"><ol><li>Add a product</li><li>Open /cart</li></ol></td><td>—</td><td>Item listed; header pill = "{n} items"; subtotal correct</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CART-002" data-type="Positive" data-prio="High"><td class="id">TC-CART-002</td><td>Increase / decrease quantity</td><td>Item in cart</td><td class="steps"><ol><li>Use +/− on a line</li></ol></td><td><span class="data">qty 1→3→2</span></td><td>Line total + cart totals recompute live</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CART-003" data-type="Boundary" data-prio="Medium"><td class="id">TC-CART-003</td><td>Decrement at qty 1</td><td>Line qty=1</td><td class="steps"><ol><li>Press − at qty 1</li></ol></td><td>—</td><td>Removes item OR disabled at 1 (no qty 0/negative)</td><td><span class="tag t-bnd">Boundary</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CART-004" data-type="Boundary" data-prio="Medium"><td class="id">TC-CART-004</td><td>Quantity vs stock cap</td><td>stock=N</td><td class="steps"><ol><li>Raise qty beyond N</li></ol></td><td><span class="data">qty&gt;N</span></td><td>Capped at stock; cannot over-order</td><td><span class="tag t-bnd">Boundary</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CART-005" data-type="Positive" data-prio="High"><td class="id">TC-CART-005</td><td>Remove item</td><td>Item in cart</td><td class="steps"><ol><li>Remove a line</li></ol></td><td>—</td><td>Line gone; totals update; count decreases</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CART-006" data-type="Positive" data-prio="Medium"><td class="id">TC-CART-006</td><td>Clear cart (with confirm)</td><td>≥1 item</td><td class="steps"><ol><li>Clear Cart → confirm</li></ol></td><td>—</td><td>All items removed; empty state shown</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CART-007" data-type="Negative" data-prio="Low"><td class="id">TC-CART-007</td><td>Cancel clear</td><td>≥1 item</td><td class="steps"><ol><li>Clear Cart → cancel dialog</li></ol></td><td>—</td><td>Items retained</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CART-008" data-type="Positive" data-prio="Medium"><td class="id">TC-CART-008</td><td>Free-shipping progress &amp; threshold</td><td>—</td><td class="steps"><ol><li>Subtotal below ₹999 then above</li></ol></td><td><span class="data">₹500 → ₹1200</span></td><td>Below: ₹99 shipping + progress bar; above: "Free" shipping</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CART-009" data-type="Positive" data-prio="High"><td class="id">TC-CART-009</td><td>Totals math (tax 18%)</td><td>Known subtotal</td><td class="steps"><ol><li>Verify subtotal+shipping+tax=total</li></ol></td><td><span class="data">sub ₹1000</span></td><td>Tax ₹180, shipping Free, total ₹1180</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CART-010" data-type="Positive" data-prio="Medium"><td class="id">TC-CART-010</td><td>Empty cart state</td><td>Cart empty</td><td class="steps"><ol><li>Open /cart with no items</li></ol></td><td>—</td><td>Empty illustration + "Start Shopping" + recommendations</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CART-011" data-type="Positive" data-prio="High"><td class="id">TC-CART-011</td><td>Guest cart persists across reload</td><td>Logged out</td><td class="steps"><ol><li>Add items as guest</li><li>Reload</li></ol></td><td>—</td><td>Items survive (localStorage)</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CART-012" data-type="Positive" data-prio="High"><td class="id">TC-CART-012</td><td>Guest cart merges on login</td><td>Guest cart has items</td><td class="steps"><ol><li>Add as guest → login</li></ol></td><td>—</td><td>Guest items merge into DB cart; counts consistent</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CART-013" data-type="Positive" data-prio="Medium"><td class="id">TC-CART-013</td><td>Continue shopping / checkout CTAs</td><td>≥1 item</td><td class="steps"><ol><li>Click each CTA</li></ol></td><td>—</td><td>Continue → /products; Checkout (orange) → /checkout</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <footer class="note">Module 4 of 11 · <a href="index.html">back to index</a></footer>
+</div>
+<script src="filter.js"></script>
+</body>
+</html>

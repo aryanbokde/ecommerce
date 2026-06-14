@@ -125,7 +125,7 @@ function DealCard({ deal, left }: { deal: Product; left: Remaining | null }) {
       </div>
 
       {/* Info */}
-      <div className="flex flex-col justify-center bg-gradient-to-br from-violet-600 to-indigo-700 p-7 text-white sm:p-9">
+      <div className="flex flex-col justify-center bg-gradient-to-br from-[#023047] to-[#219EBC] p-7 text-white sm:p-9">
         {deal.category?.name && (
           <p className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/75">
             {deal.category.name}

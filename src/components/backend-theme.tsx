@@ -24,12 +24,12 @@ import "./backend-theme.css";
 //             `theme-light` marker suppresses inherited `dark:` utilities — see
 //             the `@custom-variant dark` override in globals.css)
 // Because token vars are re-declared on the wrapper, the global html.dark from
-// the storefront never bleeds in. Default is dark (dashboard aesthetic).
+// the storefront never bleeds in. Default is light (palette shines on light).
 
 type Mode = "light" | "dark";
 
 const BackendThemeContext = createContext<{ mode: Mode; toggle: () => void }>({
-  mode: "dark",
+  mode: "light",
   toggle: () => {},
 });
 
@@ -42,15 +42,15 @@ export function BackendThemeProvider({
 }: {
   children: React.ReactNode;
 }) {
-  // Default "dark" on both server and first client render → no hydration
+  // Default "light" on both server and first client render → no hydration
   // mismatch; the effect then reconciles with the persisted choice.
-  const [mode, setMode] = useState<Mode>("dark");
+  const [mode, setMode] = useState<Mode>("light");
 
   useEffect(() => {
     const saved = localStorage.getItem("backend-theme");
     if (saved === "light" || saved === "dark") {
       // Defer out of the effect body — setState synchronously in an effect trips
-      // react-hooks/set-state-in-effect. Initial render stays "dark" (matches
+      // react-hooks/set-state-in-effect. Initial render stays "light" (matches
       // SSR), then reconciles to the persisted choice on the next microtask.
       const persisted = saved;
       queueMicrotask(() => setMode(persisted));

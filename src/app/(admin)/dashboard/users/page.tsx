@@ -72,7 +72,7 @@ const ROLE_LABEL: Record<string, string> = {
 };
 
 const ROLE_BADGE: Record<string, string> = {
-  admin: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-400",
+  admin: "bg-[#023047]/10 text-[#023047] dark:bg-[#8ECAE6]/15 dark:text-[#8ECAE6]",
   shop_manager: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
   support: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
   customer: "bg-muted text-muted-foreground",

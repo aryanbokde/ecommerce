@@ -86,7 +86,7 @@ export function TestimonialsSection() {
                           className={cn(
                             "size-4",
                             i < t.rating
-                              ? "fill-amber-400 text-amber-400"
+                              ? "fill-highlight text-highlight"
                               : "text-muted-foreground/30"
                           )}
                         />

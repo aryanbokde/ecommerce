@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QA · Shop Manager</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="manager">
+<header class="page">
+  <h1>9 · Shop Manager</h1>
+  <p>shop_manager role — Inventory, stock adjustments, low-stock, fulfillment</p>
+</header>
+<div class="wrap">
+  <a class="back" href="index.html">← All modules</a>
+  <div class="cards">
+    <div class="card"><div class="n" id="c-total">0</div><div class="l">Total</div></div>
+    <div class="card pass"><div class="n" id="c-pass">0</div><div class="l">Pass</div></div>
+    <div class="card fail"><div class="n" id="c-fail">0</div><div class="l">Fail</div></div>
+    <div class="card pend"><div class="n" id="c-pend">0</div><div class="l">Untested</div></div>
+  </div>
+  <div class="toolbar">
+    <input id="search" type="search" placeholder="Search test cases…" />
+    <select id="f-type"><option value="">All types</option><option>Positive</option><option>Negative</option><option>Boundary</option></select>
+    <select id="f-prio"><option value="">All priorities</option><option>High</option><option>Medium</option><option>Low</option></select>
+  </div>
+
+  <section class="suite">
+    <h2>9.1 Access &amp; dashboard — /shop-manager/dashboard</h2>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-MGR-001" data-type="Positive" data-prio="High"><td class="id">TC-MGR-001</td><td>Manager dashboard loads</td><td>manager@</td><td class="steps"><ol><li>Login → dashboard</li></ol></td><td>—</td><td>Orders-to-fulfill, low-stock, out-of-stock, shipped-today cards; needs-restock + oldest unfulfilled lists</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-MGR-002" data-type="Negative" data-prio="High"><td class="id">TC-MGR-002</td><td>Non-manager blocked</td><td>customer/support</td><td class="steps"><ol><li>Open /shop-manager/* as each</li></ol></td><td>—</td><td>Redirect/403 (RBAC). Admin may or may not have access — verify.</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="suite">
+    <h2>9.2 Inventory &amp; stock adjust — /shop-manager/inventory</h2>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-MGR-003" data-type="Positive" data-prio="High"><td class="id">TC-MGR-003</td><td>Adjust stock (+)</td><td>Product exists</td><td class="steps"><ol><li>Increment stock; confirm</li></ol></td><td><span class="data">+5</span></td><td>Stock updated; StockMovement recorded (restock)</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-MGR-004" data-type="Boundary" data-prio="Medium"><td class="id">TC-MGR-004</td><td>Cannot go below 0</td><td>stock=2</td><td class="steps"><ol><li>Reduce by 5</li></ol></td><td><span class="data">-5</span></td><td>Rejected/clamped at 0 (no negative stock)</td><td><span class="tag t-bnd">Boundary</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-MGR-005" data-type="Positive" data-prio="Medium"><td class="id">TC-MGR-005</td><td>Stock history dialog</td><td>Movements exist</td><td class="steps"><ol><li>Open stock history</li></ol></td><td>—</td><td>Movement list with reason badges (restock/return/sale/damage/correction) palette-correct</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-MGR-006" data-type="Negative" data-prio="Low"><td class="id">TC-MGR-006</td><td>Non-numeric stock input</td><td>—</td><td class="steps"><ol><li>Enter "abc" in qty</li></ol></td><td><span class="data">abc</span></td><td>Rejected; no change</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="suite">
+    <h2>9.3 Low-stock · Fulfillment · Products</h2>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-MGR-007" data-type="Positive" data-prio="Medium"><td class="id">TC-MGR-007</td><td>Low-stock alerts</td><td>Some ≤ lowStockAt</td><td class="steps"><ol><li>Open /shop-manager/low-stock</li></ol></td><td>—</td><td>Out-of-stock + low-stock lists accurate; quick restock works</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-MGR-008" data-type="Positive" data-prio="High"><td class="id">TC-MGR-008</td><td>Fulfillment orders + status</td><td>Unfulfilled orders</td><td class="steps"><ol><li>Open /shop-manager/orders</li><li>Advance an order's status</li></ol></td><td><span class="data">confirmed→processing→shipped</span></td><td>Allowed transitions only; list refreshes</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-MGR-009" data-type="Positive" data-prio="Low"><td class="id">TC-MGR-009</td><td>Manager product edit (catalog details)</td><td>—</td><td class="steps"><ol><li>/shop-manager/products → edit a product</li></ol></td><td>—</td><td>Editable fields save; same validation as admin product form</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <footer class="note">Module 9 of 11 · <a href="index.html">back to index</a></footer>
+</div>
+<script src="filter.js"></script>
+</body>
+</html>

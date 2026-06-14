@@ -39,7 +39,7 @@ export default function LoginPage() {
         className="mt-7 text-xs text-center"
         style={{ color: "var(--muted)", fontWeight: 300, animation: "auth-fade 0.9s 0.78s both" }}
       >
-        New to Bazaar?{" "}
+        New to MyShop?{" "}
         <Link href="/register" className="lnk" style={{ fontWeight: 400 }}>
           Create an account
         </Link>

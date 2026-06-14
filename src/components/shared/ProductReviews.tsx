@@ -51,7 +51,7 @@ function Stars({ value, className }: { value: number; className?: string }) {
           className={cn(
             "size-4",
             i < Math.round(value)
-              ? "fill-amber-400 text-amber-400"
+              ? "fill-highlight text-highlight"
               : "text-muted-foreground/40"
           )}
         />
@@ -164,10 +164,10 @@ export function ProductReviews({
             {breakdown.map(({ star, count }) => (
               <div key={star} className="flex items-center gap-2 text-xs">
                 <span className="w-3 text-muted-foreground">{star}</span>
-                <Star className="size-3 fill-amber-400 text-amber-400" />
+                <Star className="size-3 fill-highlight text-highlight" />
                 <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full bg-amber-400"
+                    className="h-full bg-highlight"
                     style={{
                       width: loadedTotal ? `${(count / loadedTotal) * 100}%` : "0%",
                     }}
@@ -206,8 +206,8 @@ export function ProductReviews({
                               className={cn(
                                 "size-6 transition-colors",
                                 i < rating
-                                  ? "fill-amber-400 text-amber-400"
-                                  : "text-muted-foreground/40 hover:text-amber-400"
+                                  ? "fill-highlight text-highlight"
+                                  : "text-muted-foreground/40 hover:text-highlight"
                               )}
                             />
                           </button>

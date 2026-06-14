@@ -34,7 +34,7 @@ interface StockHistoryDialogProps {
 const TYPE_STYLE: Record<string, string> = {
   restock: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
   return: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
-  sale: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-400",
+  sale: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-400",
   damage: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400",
   correction: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
 };

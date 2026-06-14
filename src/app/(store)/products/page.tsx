@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { Package } from "lucide-react";
 import { ProductGrid } from "@/components/shared/ProductGrid";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Pagination } from "@/components/shared/Pagination";
 import { ProductSort } from "@/components/shared/ProductSort";
 import {
@@ -7,6 +9,7 @@ import {
   MobileProductFilters,
 } from "@/components/shared/ProductFilters";
 import type { Product, Category } from "@/types";
+import { getCategoryTree } from "@/server/services/category.service";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 const PAGE_SIZE = 12;
@@ -72,17 +75,33 @@ async function fetchProducts(filters: Record<string, string>) {
   }
 }
 
+// Categories come straight from the service (a Server Component must not fetch
+// its own API route — that can deadlock and intermittently yields an empty
+// sidebar). getCategoryTree returns plain, serializable nodes with counts.
 async function fetchCategories(): Promise<Category[]> {
   try {
-    const res = await fetch(`${BASE_URL}/api/categories`, {
-      next: { tags: ["categories"], revalidate: 300 },
-    });
-    if (!res.ok) return [];
-    const json = await res.json();
-    return json.data ?? [];
+    return (await getCategoryTree()) as unknown as Category[];
   } catch {
     return [];
   }
+}
+
+/**
+ * Flatten the category tree to the categories the sidebar can actually filter
+ * by — i.e. those with at least one product of their own. Empty parents (e.g.
+ * "Electronics", whose products live under "Smartphones"/"Laptops") are dropped
+ * so the filter never offers a category that returns zero results.
+ */
+function flattenNonEmpty(tree: Category[]): Category[] {
+  const out: Category[] = [];
+  const walk = (nodes: Category[]) => {
+    for (const node of nodes) {
+      if ((node.productCount ?? 0) > 0) out.push(node);
+      if (node.children?.length) walk(node.children);
+    }
+  };
+  walk(tree);
+  return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export default async function ProductsPage({
@@ -93,18 +112,22 @@ export default async function ProductsPage({
   const sp = await searchParams;
   const filters = readFilters(sp);
 
-  const [{ products, total, page, totalPages }, categories] = await Promise.all([
+  const [{ products, total, page, totalPages }, categoryTree] = await Promise.all([
     fetchProducts(filters),
     fetchCategories(),
   ]);
+  const categories = flattenNonEmpty(categoryTree);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-        Products
-      </h1>
-
-      <div className="mt-6 flex gap-8">
+    <>
+      <PageHeader
+        title="All Products"
+        breadcrumb={[{ label: "Home", href: "/" }, { label: "Products" }]}
+        icon={Package}
+        pill={`${total} ${total === 1 ? "product" : "products"}`}
+      />
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="flex gap-8">
         {/* Desktop sidebar */}
         <aside className="hidden w-64 shrink-0 lg:block">
           <ProductFilters categories={categories} currentFilters={filters} />
@@ -135,5 +158,6 @@ export default async function ProductsPage({
         </div>
       </div>
     </div>
+    </>
   );
 }

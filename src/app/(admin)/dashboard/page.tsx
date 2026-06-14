@@ -389,7 +389,7 @@ export default async function AdminDashboardPage() {
                         </div>
                         <div className="h-2 overflow-hidden rounded-full bg-muted">
                           <div
-                            className="h-full rounded-full bg-violet-500"
+                            className="h-full rounded-full bg-brand-blue"
                             style={{ width: `${(c.revenue / catMax) * 100}%` }}
                           />
                         </div>
@@ -470,22 +470,22 @@ export default async function AdminDashboardPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex h-3 overflow-hidden rounded-full bg-muted">
-                    <div className="bg-blue-500" style={{ width: `${newPct}%` }} />
+                    <div className="bg-brand-blue" style={{ width: `${newPct}%` }} />
                     <div
-                      className="bg-violet-500"
+                      className="bg-primary"
                       style={{ width: `${100 - newPct}%` }}
                     />
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
                     <span className="flex items-center gap-1.5">
-                      <span className="size-2 rounded-full bg-blue-500" />
+                      <span className="size-2 rounded-full bg-brand-blue" />
                       New{" "}
                       <span className="font-medium tabular-nums">
                         {inr(split.newRevenue)}
                       </span>
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="size-2 rounded-full bg-violet-500" />
+                      <span className="size-2 rounded-full bg-primary" />
                       Returning{" "}
                       <span className="font-medium tabular-nums">
                         {inr(split.repeatRevenue)}

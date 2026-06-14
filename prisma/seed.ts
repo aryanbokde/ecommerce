@@ -100,6 +100,10 @@ const CAT_IMG: Record<string, string> = {
   Books: IMG_POOL.books[0],
   Electronics: IMG_POOL.laptops[1],
   Fashion: IMG_POOL["womens-wear"][1],
+  Cookware: IMG_POOL["home-kitchen"][0],
+  Tableware: IMG_POOL["home-kitchen"][1],
+  Fiction: IMG_POOL.books[0],
+  "Non-Fiction": IMG_POOL.books[1],
 };
 
 function catImg(name: string): string {
@@ -294,6 +298,10 @@ async function seedCategories() {
     ["Laptops", "Electronics"],
     ["Men's Wear", "Fashion"],
     ["Women's Wear", "Fashion"],
+    ["Cookware", "Home & Kitchen"],
+    ["Tableware", "Home & Kitchen"],
+    ["Fiction", "Books"],
+    ["Non-Fiction", "Books"],
   ];
   const subs: Record<string, { id: string }> = {};
   for (const [name, parent] of subDefs) {
@@ -310,26 +318,34 @@ async function seedCategories() {
     });
   }
 
-  console.log("✓ Seeded 8 categories (4 parents + 4 subcategories)");
+  console.log("✓ Seeded 12 categories (4 parents + 8 subcategories)");
 
-  // Leaf categories (no children) — products attach here.
+  // Leaf categories (no children) — products attach here. Every parent now has
+  // non-empty children, so the storefront mega menu + filters never surface an
+  // empty top-level category.
   const leaves: { id: string; type: LeafType }[] = [
     { id: subs["Smartphones"].id, type: "smartphones" },
     { id: subs["Laptops"].id, type: "laptops" },
     { id: subs["Men's Wear"].id, type: "mens-wear" },
     { id: subs["Women's Wear"].id, type: "womens-wear" },
-    { id: parents["Home & Kitchen"].id, type: "home-kitchen" },
-    { id: parents["Books"].id, type: "books" },
+    { id: subs["Cookware"].id, type: "home-kitchen" },
+    { id: subs["Tableware"].id, type: "home-kitchen" },
+    { id: subs["Fiction"].id, type: "books" },
+    { id: subs["Non-Fiction"].id, type: "books" },
   ];
   return leaves;
 }
 
 // ── 4. PRODUCTS ─────────────────────────────────────────────────────────────────
 async function seedProducts(leaves: { id: string; type: LeafType }[]) {
-  // Pre-pick which of the 60 are inactive (6 ≈ 10%) and featured (12),
-  // keeping the two sets disjoint so featured products are always active.
-  const allIdx = [...Array(60).keys()];
-  const inactiveIdx = new Set(faker.helpers.arrayElements(allIdx, 6));
+  // Pre-pick which products are inactive (≈10%) and featured (12), keeping the
+  // two sets disjoint so featured products are always active. Total scales with
+  // the number of leaf categories (10 products each).
+  const total = leaves.length * 10;
+  const allIdx = [...Array(total).keys()];
+  const inactiveIdx = new Set(
+    faker.helpers.arrayElements(allIdx, Math.round(total * 0.1))
+  );
   const activeIdx = allIdx.filter((i) => !inactiveIdx.has(i));
   const featuredIdx = new Set(faker.helpers.arrayElements(activeIdx, 12));
 

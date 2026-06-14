@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MyShop — QA Test Cases</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="index">
+<header class="page">
+  <h1>MyShop — Manual QA Test Cases</h1>
+  <p>Model / module-wise functional test suite · positive · negative · boundary · field-level coverage</p>
+</header>
+
+<div class="wrap">
+  <div class="cards">
+    <div class="card"><div class="n">11</div><div class="l">Modules</div></div>
+    <div class="card"><div class="n">217</div><div class="l">Test cases</div></div>
+    <div class="card"><div class="n">22</div><div class="l">Data models</div></div>
+    <div class="card"><div class="n">4</div><div class="l">Roles</div></div>
+  </div>
+
+  <h2 style="font-size:18px;border-left:4px solid var(--orange);padding-left:10px;">Modules</h2>
+  <div class="modules" style="margin-top:14px;">
+    <a class="module" href="auth.html"><h3>1 · Authentication</h3><p>Register, Login, Forgot/Reset password, Two-Factor</p><span class="chip">User · Session</span></a>
+    <a class="module" href="profile.html"><h3>2 · Profile &amp; Addresses</h3><p>Profile edit, change password, address CRUD</p><span class="chip">User · Address</span></a>
+    <a class="module" href="catalog.html"><h3>3 · Catalog &amp; Browse</h3><p>Mega menu, shop, category page, product listing filters, product detail, search</p><span class="chip">Category · Product</span></a>
+    <a class="module" href="cart.html"><h3>4 · Cart</h3><p>Add, update qty, remove, clear, totals, free-ship</p><span class="chip">Cart · CartItem</span></a>
+    <a class="module" href="checkout.html"><h3>5 · Checkout</h3><p>Address → Payment → Review → Place order</p><span class="chip">Order · Address</span></a>
+    <a class="module" href="orders.html"><h3>6 · Orders (Customer)</h3><p>List, detail, cancel, return, reorder, invoice</p><span class="chip">Order · Return</span></a>
+    <a class="module" href="reviews.html"><h3>7 · Reviews</h3><p>Submit rating/title/body, validation, moderation</p><span class="chip">Review</span></a>
+    <a class="module" href="admin.html"><h3>8 · Admin</h3><p>Product/Category CRUD, orders, users, settings, email, logs, health</p><span class="chip">Admin role</span></a>
+    <a class="module" href="manager.html"><h3>9 · Shop Manager</h3><p>Inventory, stock adjust, low-stock, fulfillment</p><span class="chip">shop_manager</span></a>
+    <a class="module" href="support.html"><h3>10 · Support</h3><p>Order lookup, customer lookup, support notes</p><span class="chip">support</span></a>
+    <a class="module" href="cross.html"><h3>11 · Cross-cutting</h3><p>RBAC/proxy guards, theme toggle, responsive, errors, SEO</p><span class="chip">System</span></a>
+  </div>
+
+  <section class="suite">
+    <h2>How to use</h2>
+    <p class="sub">Each module page is a self-contained checklist.</p>
+    <ul style="font-size:14px;">
+      <li>Columns: <b>ID · Title · Precondition · Steps · Test Data · Expected Result · Type · Priority · Status</b>.</li>
+      <li><b>Type</b>: <span class="tag t-pos">Positive</span> happy path · <span class="tag t-neg">Negative</span> invalid input · <span class="tag t-bnd">Boundary</span> limits/edge.</li>
+      <li>Click the <b>Status</b> pill to cycle Untested → Pass → Fail → Blocked. Saved in your browser (localStorage), per module.</li>
+      <li>Use the search box + Type/Priority filters at the top of each module to narrow the list.</li>
+    </ul>
+  </section>
+
+  <section class="suite">
+    <h2>Test data (seeded accounts)</h2>
+    <p class="sub">Password for all: <span class="data">Password123!</span></p>
+    <table>
+      <thead><tr><th>Role</th><th>Email</th><th>Lands on</th></tr></thead>
+      <tbody>
+        <tr><td>admin</td><td class="data">admin@shop.com</td><td>/dashboard</td></tr>
+        <tr><td>shop_manager</td><td class="data">manager@shop.com</td><td>/shop-manager/dashboard</td></tr>
+        <tr><td>support</td><td class="data">support@shop.com</td><td>/support/dashboard</td></tr>
+        <tr><td>customer</td><td class="data">customer@shop.com</td><td>/</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer class="note">Generated for MyShop (Next.js 16 storefront). Manual/exploratory QA reference — pair with the automated Vitest + Playwright suites.</footer>
+</div>
+</body>
+</html>

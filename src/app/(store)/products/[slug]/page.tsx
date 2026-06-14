@@ -1,5 +1,4 @@
 import { cache } from "react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import type {
@@ -7,20 +6,13 @@ import type {
   BreadcrumbList as BreadcrumbListSchema,
   WithContext,
 } from "schema-dts";
-import { Star, Truck, RotateCcw, ShieldCheck, ChevronRight } from "lucide-react";
+import { Star, Truck, RotateCcw, ShieldCheck, Package } from "lucide-react";
 import JsonLd from "@/components/shared/JsonLd";
 import { ProductImageGallery } from "@/components/shared/ProductImageGallery";
 import { ProductReviews } from "@/components/shared/ProductReviews";
 import { ProductBuyBox } from "@/components/shared/ProductBuyBox";
 import { ProductGrid } from "@/components/shared/ProductGrid";
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { cn } from "@/lib/utils";
 import prisma from "@/server/db";
 import { getProductBySlug, getProducts } from "@/server/services/product.service";
@@ -204,34 +196,29 @@ export default async function ProductDetailPage({
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <>
       <JsonLd schema={productSchema} />
       <JsonLd schema={breadcrumbSchema} />
 
-      <Breadcrumb className="mb-6">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink render={<Link href="/" />}>Home</BreadcrumbLink>
-          </BreadcrumbItem>
-          {product.category && (
-            <>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink
-                  render={<Link href={`/shop?category=${product.category.slug}`} />}
-                >
-                  {product.category.name}
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-            </>
-          )}
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{product.name}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+      <PageHeader
+        title={product.name}
+        breadcrumb={[
+          { label: "Home", href: "/" },
+          ...(product.category
+            ? [
+                {
+                  label: product.category.name,
+                  href: `/shop?category=${product.category.slug}`,
+                },
+              ]
+            : []),
+          { label: product.name },
+        ]}
+        icon={Package}
+        pill={product.category?.name}
+      />
 
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Gallery + info */}
       <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
         {/* Gallery sticks while the (often taller) info column scrolls. */}
@@ -240,21 +227,6 @@ export default async function ProductDetailPage({
         </div>
 
         <div className="flex flex-col">
-          {/* Category eyebrow */}
-          {product.category && (
-            <Link
-              href={`/shop?category=${product.category.slug}`}
-              className="mb-2 inline-flex w-fit items-center text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {product.category.name}
-              <ChevronRight className="size-3.5" />
-            </Link>
-          )}
-
-          <h1 className="font-heading text-3xl font-semibold leading-tight tracking-tight text-foreground sm:text-4xl">
-            {product.name}
-          </h1>
-
           {/* Rating → jumps to reviews */}
           {totalReviews > 0 && (
             <a
@@ -350,7 +322,7 @@ export default async function ProductDetailPage({
               { icon: ShieldCheck, title: "Secure", sub: "Safe checkout" },
             ].map((b) => (
               <div key={b.title} className="flex flex-col items-center gap-1.5 text-center">
-                <b.icon className="size-5 text-foreground" />
+                <b.icon className="size-5 text-brand-blue" />
                 <span className="text-xs font-semibold text-foreground">
                   {b.title}
                 </span>
@@ -410,6 +382,7 @@ export default async function ProductDetailPage({
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

@@ -7,10 +7,10 @@ import Link from "next/link";
  *     heading / form / footer as children via the shared helper classes
  *     (fld, btn-primary, btn-ghost, lnk).
  *
- * Dark palette (no gradients, solid color-blocking only):
- *   bg #0a0e16 · panel #11161f · surface #151b26
- *   Primary(teal) #14b8a6 · Accent(orange) #f97316 · Success #22c55e
- *   text #eef2f8 · muted #94a3b8
+ * Palette (light form + navy brand panel):
+ *   bg #f8fafb · panel(navy) #023047 · surface #ffffff
+ *   Primary(orange) #fb8500 · Accent(blue) #219ebc · Success #16a34a
+ *   text #023047 · muted #5b7280
  *
  * Server component (no client hooks).
  */
@@ -19,20 +19,20 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
     <>
       <style>{`
         :root {
-          --bg:           #0a0e16;
-          --panel:        #11161f;
-          --surface:      #151b26;
-          --surface-2:    #1b2230;
-          --line:         rgba(255,255,255,0.09);
-          --line-strong:  rgba(255,255,255,0.16);
-          --text:         #eef2f8;
-          --ink:          #eef2f8;
-          --muted:        #94a3b8;
-          --primary:      #14b8a6;
-          --primary-press:#0d9488;
-          --accent:       #f97316;
-          --accent-press: #ea670c;
-          --success:      #22c55e;
+          --bg:           #f8fafb;
+          --panel:        #023047;
+          --surface:      #ffffff;
+          --surface-2:    #f1f6f8;
+          --line:         #e2ebef;
+          --line-strong:  #cdd9df;
+          --text:         #023047;
+          --ink:          #023047;
+          --muted:        #5b7280;
+          --primary:      #fb8500;
+          --primary-press:#e07700;
+          --accent:       #219ebc;
+          --accent-press: #1b86a0;
+          --success:      #16a34a;
         }
         @keyframes auth-panel-in {
           from { opacity: 0; transform: translateX(-24px); }
@@ -67,7 +67,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         .fld:focus {
           border-color: var(--accent);
           background: var(--surface-2);
-          box-shadow: 0 0 0 4px rgba(249,115,22,0.18);
+          box-shadow: 0 0 0 4px rgba(33,158,188,0.18);
         }
         .fld-label {
           display: block;
@@ -87,18 +87,18 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           font-weight: 600;
           letter-spacing: 0.14em;
           text-transform: uppercase;
-          color: #04201d;
+          color: #ffffff;
           border: none;
           border-radius: 12px;
           cursor: pointer;
           background: var(--primary);
-          box-shadow: 0 10px 26px -10px rgba(20,184,166,0.6);
+          box-shadow: 0 10px 26px -10px rgba(251,133,0,0.55);
           transition: transform .22s cubic-bezier(0.16,1,0.3,1), background .2s, box-shadow .22s;
         }
         .btn-primary:hover {
           background: var(--primary-press);
           transform: translateY(-2px);
-          box-shadow: 0 16px 34px -12px rgba(20,184,166,0.75);
+          box-shadow: 0 16px 34px -12px rgba(251,133,0,0.7);
         }
         .btn-primary:active { transform: translateY(0); }
         .btn-ghost {
@@ -133,7 +133,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
       >
         {/* ── Left brand panel (elevated dark) ──────────────────── */}
         <section
-          aria-label="Bazaar"
+          aria-label="MyShop"
           className="relative hidden lg:flex flex-col justify-between overflow-hidden px-14 py-14 xl:px-16"
           style={{
             width: "48%",
@@ -166,7 +166,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
               style={{ width: 22, height: 22, borderRadius: 7, background: "var(--primary)", display: "inline-block" }}
             />
             <span className="text-[11px]" style={{ letterSpacing: "0.34em", textTransform: "uppercase", fontWeight: 500 }}>
-              Bazaar
+              MyShop
             </span>
           </div>
 
@@ -210,9 +210,9 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
                     letterSpacing: "0.12em",
                     textTransform: "uppercase",
                     borderRadius: 999,
-                    // First chip filled with Accent to bring the orange onto the panel
+                    // First chip filled with Primary to bring the orange onto the navy panel
                     ...(i === 0
-                      ? { background: "var(--accent)", color: "#1a0d03", border: "1px solid var(--accent)" }
+                      ? { background: "var(--primary)", color: "#ffffff", border: "1px solid var(--primary)" }
                       : { color: "rgba(255,255,255,0.86)", border: "1px solid var(--line-strong)" }),
                   }}
                 >
@@ -257,7 +257,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
             <Link href="/" className="lg:hidden mb-10 inline-flex items-center gap-2.5" style={{ color: "var(--ink)" }}>
               <span aria-hidden="true" style={{ width: 22, height: 22, borderRadius: 7, background: "var(--primary)", display: "inline-block" }} />
               <span className="text-[11px]" style={{ letterSpacing: "0.34em", textTransform: "uppercase", fontWeight: 500 }}>
-                Bazaar
+                MyShop
               </span>
             </Link>
 

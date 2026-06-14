@@ -1,10 +1,9 @@
 import { cache } from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   CheckCircle2,
-  ArrowLeft,
+  Package,
   ShoppingBag,
   MapPin,
   CreditCard,
@@ -13,6 +12,7 @@ import {
   LifeBuoy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { getServerSession } from "@/lib/auth";
@@ -47,7 +47,7 @@ const PAYMENT_STYLES: Record<string, string> = {
   paid: "bg-green-100 text-green-700",
   unpaid: "bg-amber-100 text-amber-700",
   refund_pending: "bg-orange-100 text-orange-700",
-  refunded: "bg-gray-100 text-gray-700",
+  refunded: "bg-muted text-muted-foreground",
   failed: "bg-red-100 text-red-700",
 };
 
@@ -104,15 +104,19 @@ export default async function OrderDetailPage({
   const address = order.address;
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-      <Link
-        href="/orders"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        My Orders
-      </Link>
-
+    <>
+      <PageHeader
+        title={`Order ${order.orderNumber}`}
+        breadcrumb={[
+          { label: "Home", href: "/" },
+          { label: "Orders", href: "/orders" },
+          { label: order.orderNumber },
+        ]}
+        icon={Package}
+        pill={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+        subtitle={`Placed ${placedOn}`}
+      />
+      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
       {/* Success banner (after a fresh checkout) */}
       {justPlaced && (
         <div className="mt-4 flex items-center gap-4 rounded-xl border border-green-200 bg-green-50 p-5 duration-500 animate-in fade-in slide-in-from-top-2">
@@ -133,14 +137,6 @@ export default async function OrderDetailPage({
           </div>
         </div>
       )}
-
-      {/* Header */}
-      <div className="mt-6">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-          Order {order.orderNumber}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">Placed {placedOn}</p>
-      </div>
 
       {/* Status timeline */}
       <section
@@ -334,6 +330,7 @@ export default async function OrderDetailPage({
           Contact Support
         </Button>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

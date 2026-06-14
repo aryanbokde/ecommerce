@@ -10,9 +10,9 @@ export default function ForbiddenPage() {
     <main
       className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden px-6 text-center"
       style={{
-        background: "radial-gradient(120% 120% at 50% 0%, #14121d 0%, #08080c 60%)",
+        background: "radial-gradient(120% 120% at 50% 0%, #023047 0%, #021c2b 60%)",
         fontFamily: "var(--font-body,'system-ui',sans-serif)",
-        color: "#f4f4f7",
+        color: "#eaf4f8",
       }}
     >
       <div
@@ -21,14 +21,14 @@ export default function ForbiddenPage() {
         style={{
           width: 560,
           height: 560,
-          background: "radial-gradient(circle, rgba(255,122,134,0.30), transparent 62%)",
+          background: "radial-gradient(circle, rgba(251,133,0,0.28), transparent 62%)",
           filter: "blur(70px)",
         }}
       />
       <div className="relative">
         <p
           className="text-[12px]"
-          style={{ letterSpacing: "0.34em", textTransform: "uppercase", color: "#ff7a86" }}
+          style={{ letterSpacing: "0.34em", textTransform: "uppercase", color: "#fb8500" }}
         >
           Error 403
         </p>
@@ -38,7 +38,7 @@ export default function ForbiddenPage() {
         >
           Access denied
         </h1>
-        <p className="mt-3 text-sm" style={{ color: "#9b9ba8", fontWeight: 300 }}>
+        <p className="mt-3 text-sm" style={{ color: "#8eb0c0", fontWeight: 300 }}>
           You don&apos;t have permission to view this page.
         </p>
         <Link
@@ -51,7 +51,7 @@ export default function ForbiddenPage() {
             textTransform: "uppercase",
             color: "#fff",
             borderRadius: 12,
-            background: "linear-gradient(100deg, #ff7a86, #8b6cff)",
+            background: "linear-gradient(100deg, #fb8500, #e07700)",
           }}
         >
           Back home

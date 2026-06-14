@@ -12,7 +12,11 @@ import type {
 // ── Category service ──────────────────────────────────────────────────────────
 // Tree-aware data access for categories. Auth/audit live in the route handlers.
 
-export type CategoryNode = Category & { children: CategoryNode[] };
+export type CategoryNode = Category & {
+  children: CategoryNode[];
+  /** Direct product count for this category (excludes descendants). */
+  productCount: number;
+};
 
 const orderBy: Prisma.CategoryOrderByWithRelationInput[] = [
   { sortOrder: "asc" },
@@ -99,10 +103,12 @@ export async function getCategoryTree(): Promise<CategoryNode[]> {
   const categories = await prisma.category.findMany({
     where: { isActive: true },
     orderBy,
+    include: { _count: { select: { products: true } } },
   });
 
   const byId = new Map<string, CategoryNode>();
-  for (const c of categories) byId.set(c.id, { ...c, children: [] });
+  for (const { _count, ...c } of categories)
+    byId.set(c.id, { ...c, children: [], productCount: _count.products });
 
   const roots: CategoryNode[] = [];
   for (const node of byId.values()) {

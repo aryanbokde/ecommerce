@@ -33,7 +33,7 @@ const STATUS_STYLES: Record<string, string> = {
   requested: "bg-orange-100 text-orange-700",
   approved: "bg-green-100 text-green-700",
   rejected: "bg-red-100 text-red-700",
-  completed: "bg-gray-100 text-gray-700",
+  completed: "bg-muted text-muted-foreground",
 };
 
 /** Customer-facing return control on the order detail page. */

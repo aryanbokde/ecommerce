@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Mail, Clock, MapPin, LifeBuoy } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export const metadata: Metadata = {
   title: "Contact Us",
@@ -28,18 +29,15 @@ const CARDS = [
 
 export default function ContactPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
-      <header className="border-b border-border pb-6">
-        <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground">
-          Contact Us
-        </h1>
-        <p className="mt-2 text-[15px] leading-7 text-muted-foreground">
-          Have a question about an order or need a hand? We&rsquo;re here to
-          help.
-        </p>
-      </header>
-
-      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <>
+      <PageHeader
+        title="Contact Us"
+        breadcrumb={[{ label: "Home", href: "/" }, { label: "Contact" }]}
+        icon={Mail}
+        subtitle="Have a question about an order or need a hand? We're here to help."
+      />
+      <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {CARDS.map((c) => {
           const Icon = c.icon;
           const inner = (
@@ -91,6 +89,7 @@ export default function ContactPage() {
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

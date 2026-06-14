@@ -23,10 +23,10 @@ interface BannerCardProps {
 }
 
 const BANNER_GRADIENTS = [
-  "from-violet-600 to-indigo-600",
-  "from-rose-500 to-orange-500",
-  "from-emerald-600 to-teal-600",
-  "from-sky-600 to-blue-700",
+  "from-[#FB8500] to-[#E07700]", // orange
+  "from-[#219EBC] to-[#023047]", // blue → navy
+  "from-[#FFB703] to-[#FB8500]", // yellow → orange
+  "from-[#8ECAE6] to-[#219EBC]", // sky → blue
 ];
 
 function CtaButton({ cta, light }: { cta: string; light?: boolean }) {

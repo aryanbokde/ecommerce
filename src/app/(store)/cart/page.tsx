@@ -31,14 +31,9 @@ import { CartItemRow } from "@/components/store/CartItemRow";
 import { CartSummary } from "@/components/store/CartSummary";
 import { CartRecommendations } from "@/components/store/CartRecommendations";
 import { RecentlyViewed } from "@/components/store/RecentlyViewed";
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { PageHeader } from "@/components/layout/PageHeader";
+
+const CART_CRUMB = [{ label: "Home", href: "/" }, { label: "Cart" }];
 
 const FREE_SHIPPING_THRESHOLD = 999;
 const SHIPPING_FEE = 99;
@@ -123,7 +118,12 @@ export default function CartPage() {
   if (isLoading && items.length === 0) {
     return (
       <>
-        <CartHero subtitle="Loading your cart…" />
+        <PageHeader
+          title="Shopping Cart"
+          breadcrumb={CART_CRUMB}
+          icon={ShoppingBag}
+          subtitle="Loading your cart…"
+        />
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -140,7 +140,12 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <>
-        <CartHero subtitle="Your cart is waiting" />
+        <PageHeader
+          title="Shopping Cart"
+          breadcrumb={CART_CRUMB}
+          icon={ShoppingBag}
+          subtitle="Your cart is waiting"
+        />
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-center gap-5 rounded-2xl border border-dashed border-border bg-card/40 px-6 py-20 text-center">
             <span className="flex size-20 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -178,12 +183,11 @@ export default function CartPage() {
   // ── Cart with items ────────────────────────────────────────────────────────
   return (
     <>
-      <CartHero
-        pill={
-          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-            {count} {count === 1 ? "item" : "items"}
-          </span>
-        }
+      <PageHeader
+        title="Shopping Cart"
+        breadcrumb={CART_CRUMB}
+        icon={ShoppingBag}
+        pill={`${count} ${count === 1 ? "item" : "items"}`}
       />
       <div className="mx-auto max-w-7xl px-4 pb-10 pt-10 sm:px-6 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-3">
@@ -307,48 +311,6 @@ export default function CartPage() {
 
 // Full-width hero band — sits flush under the site header (no gap) and carries
 // the breadcrumb + page title, matching the product-detail breadcrumb pattern.
-function CartHero({
-  subtitle,
-  pill,
-}: {
-  subtitle?: React.ReactNode;
-  pill?: React.ReactNode;
-}) {
-  return (
-    <div className="border-b border-border bg-gradient-to-b from-muted/50 to-background">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink render={<Link href="/" />}>Home</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Cart</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-        <div className="mt-3 flex items-center gap-3.5">
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <ShoppingBag className="size-6" />
-          </span>
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                Shopping Cart
-              </h1>
-              {pill}
-            </div>
-            {subtitle && (
-              <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function Benefit({
   icon: Icon,
   title,
@@ -360,7 +322,7 @@ function Benefit({
 }) {
   return (
     <div className="flex items-center gap-3 bg-card p-4">
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-blue/12 text-brand-blue">
         <Icon className="size-5" />
       </span>
       <div className="min-w-0">

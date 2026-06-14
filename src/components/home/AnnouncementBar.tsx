@@ -31,7 +31,7 @@ export function AnnouncementBar() {
   if (!visible) return null;
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-r from-primary/85 via-primary to-primary/85 text-primary-foreground">
+    <div className="relative overflow-hidden bg-gradient-to-r from-[#023047] via-[#219EBC] to-[#023047] text-white">
       {/* faint sheen for a touch of depth */}
       <div
         aria-hidden

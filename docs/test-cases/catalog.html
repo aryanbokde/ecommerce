@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QA · Catalog &amp; Browse</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="catalog">
+<header class="page">
+  <h1>3 · Catalog &amp; Browse</h1>
+  <p>Category &amp; Product models — Mega menu, Shop, Category page, Product listing filters, Product detail, Search</p>
+</header>
+<div class="wrap">
+  <a class="back" href="index.html">← All modules</a>
+  <div class="cards">
+    <div class="card"><div class="n" id="c-total">0</div><div class="l">Total</div></div>
+    <div class="card pass"><div class="n" id="c-pass">0</div><div class="l">Pass</div></div>
+    <div class="card fail"><div class="n" id="c-fail">0</div><div class="l">Fail</div></div>
+    <div class="card pend"><div class="n" id="c-pend">0</div><div class="l">Untested</div></div>
+  </div>
+  <div class="toolbar">
+    <input id="search" type="search" placeholder="Search test cases…" />
+    <select id="f-type"><option value="">All types</option><option>Positive</option><option>Negative</option><option>Boundary</option></select>
+    <select id="f-prio"><option value="">All priorities</option><option>High</option><option>Medium</option><option>Low</option></select>
+  </div>
+
+  <section class="suite">
+    <h2>3.1 Mega menu (header)</h2>
+    <p class="sub">Per-parent panels. Only non-empty categories shown; each panel lists non-empty subcategories with counts + promo tile.</p>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-CAT-001" data-type="Positive" data-prio="High"><td class="id">TC-CAT-001</td><td>Hover parent opens panel</td><td>Desktop ≥lg</td><td class="steps"><ol><li>Hover "Electronics"</li></ol></td><td>—</td><td>Panel opens with Smartphones(10), Laptops(10) + counts + promo tile</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-002" data-type="Positive" data-prio="High"><td class="id">TC-CAT-002</td><td>Empty parents hidden</td><td>Seeded</td><td class="steps"><ol><li>Inspect nav items</li></ol></td><td>—</td><td>Only categories with products appear; no empty/0-count item</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-003" data-type="Positive" data-prio="Medium"><td class="id">TC-CAT-003</td><td>Subcategory link navigates</td><td>Panel open</td><td class="steps"><ol><li>Click "Smartphones"</li></ol></td><td><span class="data">/shop?category=smartphones</span></td><td>Goes to category page; that category active</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-004" data-type="Positive" data-prio="Medium"><td class="id">TC-CAT-004</td><td>"Shop all {parent}" + promo links</td><td>Panel open</td><td class="steps"><ol><li>Click "Shop all Electronics" and the promo tile</li></ol></td><td>—</td><td>Both go to /shop?category=electronics</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-005" data-type="Positive" data-prio="Medium"><td class="id">TC-CAT-005</td><td>Mobile grouped menu</td><td>Viewport 390px</td><td class="steps"><ol><li>Open hamburger → Browse</li></ol></td><td>—</td><td>Parents as headings, children indented with counts; All Products link</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-006" data-type="Negative" data-prio="Low"><td class="id">TC-CAT-006</td><td>Leaf parent renders as plain link</td><td>A parent w/o children but with own products</td><td class="steps"><ol><li>Inspect that nav item</li></ol></td><td>—</td><td>No dropdown; direct link to its category</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="suite">
+    <h2>3.2 Shop index — /shop</h2>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-CAT-007" data-type="Positive" data-prio="Medium"><td class="id">TC-CAT-007</td><td>Category grid renders</td><td>—</td><td class="steps"><ol><li>Open /shop</li></ol></td><td>—</td><td>PageHeader "Shop" + total products pill; category cards with images + counts</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-008" data-type="Positive" data-prio="Low"><td class="id">TC-CAT-008</td><td>Card click → category page</td><td>—</td><td class="steps"><ol><li>Click a category card</li></ol></td><td>—</td><td>Opens that category's product listing</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="suite">
+    <h2>3.3 Category page — /shop?category={slug}</h2>
+    <p class="sub">Now mirrors /products: sidebar (categories non-empty + price + sort) · count · grid · pagination. Category filter uses the <span class="data">category</span> (slug) param.</p>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-CAT-009" data-type="Positive" data-prio="High"><td class="id">TC-CAT-009</td><td>Category products + header</td><td>—</td><td class="steps"><ol><li>Open /shop?category=smartphones</li></ol></td><td>—</td><td>Header = category name + count pill; breadcrumb Home›Shop›Smartphones; grid shows only that category's products</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-010" data-type="Positive" data-prio="High"><td class="id">TC-CAT-010</td><td>Sidebar shows only non-empty categories</td><td>—</td><td class="steps"><ol><li>Inspect sidebar Categories list</li></ol></td><td>—</td><td>Empty parents (Electronics/Fashion) absent; 8 leaf categories with counts</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-011" data-type="Positive" data-prio="Medium"><td class="id">TC-CAT-011</td><td>Switch category from sidebar</td><td>On a category page</td><td class="steps"><ol><li>Tick another category</li></ol></td><td><span class="data">?category=laptops</span></td><td>URL + listing switch; page reset to 1</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-012" data-type="Positive" data-prio="Medium"><td class="id">TC-CAT-012</td><td>Price + sort on category page</td><td>—</td><td class="steps"><ol><li>Apply price range; change sort</li></ol></td><td><span class="data">min=10000 sort=price:asc</span></td><td>Listing filtered + sorted; category stays applied</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-013" data-type="Negative" data-prio="Low"><td class="id">TC-CAT-013</td><td>Unknown slug</td><td>—</td><td class="steps"><ol><li>/shop?category=does-not-exist</li></ol></td><td>—</td><td>Falls through to the full category index (no crash)</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="suite">
+    <h2>3.4 Product listing — /products</h2>
+    <p class="sub">Filters via URL params: <span class="data">categoryId</span>, <span class="data">minPrice</span>/<span class="data">maxPrice</span> (≥0), <span class="data">sortBy</span> (price/name/createdAt/stock/reviews), <span class="data">sortOrder</span>, <span class="data">search</span>, <span class="data">page</span> (12/pg).</p>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-CAT-014" data-type="Positive" data-prio="High"><td class="id">TC-CAT-014</td><td>Listing + count pill</td><td>—</td><td class="steps"><ol><li>Open /products</li></ol></td><td>—</td><td>"All Products" header + total pill; 12 products + pagination</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-015" data-type="Positive" data-prio="High"><td class="id">TC-CAT-015</td><td>Sidebar categories present (not empty)</td><td>—</td><td class="steps"><ol><li>Inspect sidebar (desktop)</li></ol></td><td>—</td><td>Non-empty categories listed with counts (regression for "no categories")</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-016" data-type="Positive" data-prio="High"><td class="id">TC-CAT-016</td><td>Filter by category</td><td>—</td><td class="steps"><ol><li>Tick a category</li></ol></td><td><span class="data">categoryId</span></td><td>Only that category's products; count updates</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-017" data-type="Positive" data-prio="Medium"><td class="id">TC-CAT-017</td><td>Price range filter</td><td>—</td><td class="steps"><ol><li>min=1000,max=5000; Apply</li></ol></td><td><span class="data">1000–5000</span></td><td>Only products in range shown</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-018" data-type="Boundary" data-prio="Medium"><td class="id">TC-CAT-018</td><td>min &gt; max</td><td>—</td><td class="steps"><ol><li>min=9000,max=10; Apply</li></ol></td><td><span class="data">9000 / 10</span></td><td>Empty result (no crash); clear restores</td><td><span class="tag t-bnd">Boundary</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-019" data-type="Negative" data-prio="Low"><td class="id">TC-CAT-019</td><td>Negative price param</td><td>—</td><td class="steps"><ol><li>URL minPrice=-5</li></ol></td><td><span class="data">minPrice=-5</span></td><td>Rejected/clamped (schema min 0); no error page</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-020" data-type="Positive" data-prio="Medium"><td class="id">TC-CAT-020</td><td>Sort options</td><td>—</td><td class="steps"><ol><li>Try each: Newest, Price ↑, Price ↓, Most Reviewed</li></ol></td><td>—</td><td>Order changes correctly; page resets to 1</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-021" data-type="Positive" data-prio="Medium"><td class="id">TC-CAT-021</td><td>Pagination</td><td>&gt;12 results</td><td class="steps"><ol><li>Go to page 2; back to 1</li></ol></td><td><span class="data">?page=2</span></td><td>Correct slice; active page highlighted; filters preserved</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-022" data-type="Positive" data-prio="High"><td class="id">TC-CAT-022</td><td>Search products</td><td>—</td><td class="steps"><ol><li>Search "phone"</li></ol></td><td><span class="data">search=phone</span></td><td>Matching products by name/desc/sku; header reflects query</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-023" data-type="Negative" data-prio="Low"><td class="id">TC-CAT-023</td><td>Search no results</td><td>—</td><td class="steps"><ol><li>Search "zzzzz"</li></ol></td><td><span class="data">zzzzz</span></td><td>Empty-state message; count 0; no crash</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-024" data-type="Positive" data-prio="Medium"><td class="id">TC-CAT-024</td><td>Mobile filters sheet</td><td>390px</td><td class="steps"><ol><li>Tap Filters → apply category/price/sort</li></ol></td><td>—</td><td>Sheet opens; filters apply; sidebar hidden on mobile</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-025" data-type="Positive" data-prio="Low"><td class="id">TC-CAT-025</td><td>Clear all filters</td><td>Filters active</td><td class="steps"><ol><li>Click "Clear all filters"</li></ol></td><td>—</td><td>All params removed; full listing returns</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-026" data-type="Positive" data-prio="Low"><td class="id">TC-CAT-026</td><td>Only active products on storefront</td><td>Some isActive=false</td><td class="steps"><ol><li>Browse listing</li></ol></td><td>—</td><td>Inactive products never shown to shoppers</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="suite">
+    <h2>3.5 Product detail — /products/{slug}</h2>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-CAT-027" data-type="Positive" data-prio="High"><td class="id">TC-CAT-027</td><td>Detail renders</td><td>—</td><td class="steps"><ol><li>Open a product</li></ol></td><td>—</td><td>Header band (name + category breadcrumb), gallery, price, stock, rating, description, trust row (blue icons)</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-028" data-type="Positive" data-prio="High"><td class="id">TC-CAT-028</td><td>Add to cart + quantity</td><td>In-stock product</td><td class="steps"><ol><li>Set qty 2</li><li>Add to cart</li></ol></td><td><span class="data">qty=2</span></td><td>Cart count +2; toast; drawer/badge updates</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-029" data-type="Boundary" data-prio="Medium"><td class="id">TC-CAT-029</td><td>Quantity vs stock</td><td>stock = N</td><td class="steps"><ol><li>Try qty &gt; N</li></ol></td><td><span class="data">qty=N+1</span></td><td>Capped at stock / rejected; cannot exceed available</td><td><span class="tag t-bnd">Boundary</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-030" data-type="Negative" data-prio="Medium"><td class="id">TC-CAT-030</td><td>Out-of-stock product</td><td>stock=0</td><td class="steps"><ol><li>Open an OOS product</li></ol></td><td>—</td><td>"Out of stock"; Add to cart disabled</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-031" data-type="Positive" data-prio="Low"><td class="id">TC-CAT-031</td><td>Sale price + discount</td><td>comparePrice set</td><td class="steps"><ol><li>Open a discounted product</li></ol></td><td>—</td><td>Strikethrough compare price + "Save X%"; Sale badge (yellow) on card</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-032" data-type="Positive" data-prio="Low"><td class="id">TC-CAT-032</td><td>Gallery + related</td><td>—</td><td class="steps"><ol><li>Switch gallery images; scroll to Related</li></ol></td><td>—</td><td>Thumbnails switch main image; related products shown + clickable</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-033" data-type="Negative" data-prio="Low"><td class="id">TC-CAT-033</td><td>Unknown product slug → 404</td><td>—</td><td class="steps"><ol><li>/products/not-a-real-slug</li></ol></td><td>—</td><td>notFound() → branded 404 (when reachable)</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="suite">
+    <h2>3.6 Search bar (header)</h2>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-CAT-034" data-type="Positive" data-prio="Medium"><td class="id">TC-CAT-034</td><td>Autocomplete suggestions</td><td>Desktop</td><td class="steps"><ol><li>Type ≥2 chars in header search</li></ol></td><td><span class="data">"lap"</span></td><td>Dropdown with matching products; click → product page</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-035" data-type="Positive" data-prio="Low"><td class="id">TC-CAT-035</td><td>"See all results"</td><td>Suggestions shown</td><td class="steps"><ol><li>Press Enter / click see-all</li></ol></td><td>—</td><td>Goes to /products?search=…</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CAT-036" data-type="Negative" data-prio="Low"><td class="id">TC-CAT-036</td><td>Empty search submit</td><td>—</td><td class="steps"><ol><li>Submit empty query</li></ol></td><td>—</td><td>Goes to /products (no error)</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <footer class="note">Module 3 of 11 · <a href="index.html">back to index</a></footer>
+</div>
+<script src="filter.js"></script>
+</body>
+</html>

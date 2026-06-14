@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QA · Checkout</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="checkout">
+<header class="page">
+  <h1>5 · Checkout</h1>
+  <p>Order model — Address → Payment → Review → Place order</p>
+</header>
+<div class="wrap">
+  <a class="back" href="index.html">← All modules</a>
+  <div class="cards">
+    <div class="card"><div class="n" id="c-total">0</div><div class="l">Total</div></div>
+    <div class="card pass"><div class="n" id="c-pass">0</div><div class="l">Pass</div></div>
+    <div class="card fail"><div class="n" id="c-fail">0</div><div class="l">Fail</div></div>
+    <div class="card pend"><div class="n" id="c-pend">0</div><div class="l">Untested</div></div>
+  </div>
+  <div class="toolbar">
+    <input id="search" type="search" placeholder="Search test cases…" />
+    <select id="f-type"><option value="">All types</option><option>Positive</option><option>Negative</option><option>Boundary</option></select>
+    <select id="f-prio"><option value="">All priorities</option><option>High</option><option>Medium</option><option>Low</option></select>
+  </div>
+
+  <section class="suite">
+    <h2>5.1 Guard &amp; flow — /checkout</h2>
+    <p class="sub">createOrder fields: <span class="data">addressId</span> (required), <span class="data">paymentMethod</span> (required), <span class="data">notes</span> (≤2000, optional). 3-step wizard.</p>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-CHK-001" data-type="Negative" data-prio="High"><td class="id">TC-CHK-001</td><td>Empty cart bounces</td><td>Cart empty</td><td class="steps"><ol><li>Open /checkout with empty cart</li></ol></td><td>—</td><td>Warning toast; redirect to /cart</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CHK-002" data-type="Negative" data-prio="High"><td class="id">TC-CHK-002</td><td>Anonymous redirected to login</td><td>Logged out</td><td class="steps"><ol><li>Open /checkout</li></ol></td><td>—</td><td>Redirect to /login?redirect=/checkout</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CHK-003" data-type="Positive" data-prio="Medium"><td class="id">TC-CHK-003</td><td>Step indicator + summary</td><td>Cart has items</td><td class="steps"><ol><li>Open /checkout</li></ol></td><td>—</td><td>Step 1 active; order summary lists items + totals</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="suite">
+    <h2>5.2 Address step</h2>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-CHK-004" data-type="Positive" data-prio="High"><td class="id">TC-CHK-004</td><td>Select saved address</td><td>≥1 address</td><td class="steps"><ol><li>Pick an address</li><li>Continue to Payment</li></ol></td><td>—</td><td>Address selected (orange ring); advances to Payment</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CHK-005" data-type="Negative" data-prio="High"><td class="id">TC-CHK-005</td><td>Continue without address</td><td>None selected</td><td class="steps"><ol><li>Click Continue with no selection</li></ol></td><td>—</td><td>Button disabled until an address is chosen</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CHK-006" data-type="Positive" data-prio="Medium"><td class="id">TC-CHK-006</td><td>Add new address inline</td><td>—</td><td class="steps"><ol><li>Add new address → fill form → save</li></ol></td><td>see Address form (Module 2)</td><td>New address appears + auto-selectable; same validation as TC-ADDR-*</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CHK-007" data-type="Negative" data-prio="Medium"><td class="id">TC-CHK-007</td><td>No saved addresses empty-state</td><td>0 addresses</td><td class="steps"><ol><li>Open address step</li></ol></td><td>—</td><td>Empty state prompts to add an address before continuing</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="suite">
+    <h2>5.3 Payment &amp; Review → Place order</h2>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-CHK-008" data-type="Positive" data-prio="High"><td class="id">TC-CHK-008</td><td>COD order end-to-end</td><td>Address selected</td><td class="steps"><ol><li>Payment = Cash on Delivery</li><li>Review → Place order</li></ol></td><td><span class="data">paymentMethod=cod</span></td><td>Order created; redirect to /orders/{id}?success=true; stock decremented; cart cleared</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CHK-009" data-type="Positive" data-prio="High"><td class="id">TC-CHK-009</td><td>Razorpay (test mode) order</td><td>Razorpay test keys</td><td class="steps"><ol><li>Payment = Razorpay</li><li>Complete test payment</li></ol></td><td><span class="data">test card</span></td><td>Payment succeeds; order paid; success page</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CHK-010" data-type="Negative" data-prio="Medium"><td class="id">TC-CHK-010</td><td>Razorpay cancelled/failed</td><td>—</td><td class="steps"><ol><li>Start Razorpay; cancel/fail</li></ol></td><td>—</td><td>No order OR order left unpaid; user can retry; cart intact</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CHK-011" data-type="Positive" data-prio="Medium"><td class="id">TC-CHK-011</td><td>Order notes saved</td><td>—</td><td class="steps"><ol><li>Add notes; place order</li></ol></td><td><span class="data">"leave at door"</span></td><td>Notes stored + shown on order detail</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CHK-012" data-type="Boundary" data-prio="Low"><td class="id">TC-CHK-012</td><td>Notes over 2000 chars</td><td>—</td><td class="steps"><ol><li>Paste 2001 chars; place</li></ol></td><td><span class="data">2001 chars</span></td><td>Rejected/limited to 2000</td><td><span class="tag t-bnd">Boundary</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CHK-013" data-type="Negative" data-prio="High"><td class="id">TC-CHK-013</td><td>Stock changed before placing</td><td>Item went OOS mid-checkout</td><td class="steps"><ol><li>Place order after stock hits 0 elsewhere</li></ol></td><td>—</td><td>Server rejects with clear stock error; no oversell</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CHK-014" data-type="Positive" data-prio="Medium"><td class="id">TC-CHK-014</td><td>Review step totals match cart</td><td>—</td><td class="steps"><ol><li>Compare review totals vs cart</li></ol></td><td>—</td><td>Subtotal/tax/shipping/total identical to cart math</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CHK-015" data-type="Positive" data-prio="Low"><td class="id">TC-CHK-015</td><td>Back navigation between steps</td><td>On step 2/3</td><td class="steps"><ol><li>Go back to a previous step</li></ol></td><td>—</td><td>Selections preserved; no data loss</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-CHK-016" data-type="Negative" data-prio="Medium"><td class="id">TC-CHK-016</td><td>Double-submit guard</td><td>On Place order</td><td class="steps"><ol><li>Click Place order twice fast</li></ol></td><td>—</td><td>Button disables during submit; only one order created</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <footer class="note">Module 5 of 11 · <a href="index.html">back to index</a></footer>
+</div>
+<script src="filter.js"></script>
+</body>
+</html>

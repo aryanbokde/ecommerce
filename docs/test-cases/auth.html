@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QA · Authentication</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="auth">
+<header class="page">
+  <h1>1 · Authentication</h1>
+  <p>User &amp; Session models — Register, Login, Forgot/Reset password, Two-Factor</p>
+</header>
+<div class="wrap">
+  <a class="back" href="index.html">← All modules</a>
+  <div class="cards">
+    <div class="card"><div class="n" id="c-total">0</div><div class="l">Total</div></div>
+    <div class="card pass"><div class="n" id="c-pass">0</div><div class="l">Pass</div></div>
+    <div class="card fail"><div class="n" id="c-fail">0</div><div class="l">Fail</div></div>
+    <div class="card pend"><div class="n" id="c-pend">0</div><div class="l">Untested</div></div>
+  </div>
+  <div class="toolbar">
+    <input id="search" type="search" placeholder="Search test cases…" />
+    <select id="f-type"><option value="">All types</option><option>Positive</option><option>Negative</option><option>Boundary</option></select>
+    <select id="f-prio"><option value="">All priorities</option><option>High</option><option>Medium</option><option>Low</option></select>
+  </div>
+
+  <!-- REGISTER -->
+  <section class="suite">
+    <h2>1.1 Register — /register</h2>
+    <p class="sub">Fields: <span class="data">name</span> (required), <span class="data">email</span> (required, valid, unique), <span class="data">password</span> (min 8). Calls authClient.signUp.email.</p>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-AUTH-001" data-type="Positive" data-prio="High"><td class="id">TC-AUTH-001</td><td>Register with valid details</td><td>Email not already used</td><td class="steps"><ol><li>Open /register</li><li>Enter name, email, password</li><li>Submit</li></ol></td><td><span class="data">Jane Doe / jane@x.com / Secret123</span></td><td>Account created; "check your email to verify" notice; redirected to login</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-002" data-type="Negative" data-prio="High"><td class="id">TC-AUTH-002</td><td>Name empty</td><td>—</td><td class="steps"><ol><li>Leave name blank</li><li>Fill email + password</li><li>Submit</li></ol></td><td><span class="data">name=""</span></td><td>Inline "required" error; no account created; form not submitted</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-003" data-type="Negative" data-prio="High"><td class="id">TC-AUTH-003</td><td>Invalid email format</td><td>—</td><td class="steps"><ol><li>Enter malformed email</li><li>Submit</li></ol></td><td><span class="data">jane@</span>, <span class="data">jane.com</span></td><td>Validation error; submit blocked</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-004" data-type="Boundary" data-prio="High"><td class="id">TC-AUTH-004</td><td>Password below minimum (7 chars)</td><td>—</td><td class="steps"><ol><li>Enter 7-char password</li><li>Submit</li></ol></td><td><span class="data">Abc1234</span></td><td>Rejected — "at least 8 characters"</td><td><span class="tag t-bnd">Boundary</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-005" data-type="Boundary" data-prio="Medium"><td class="id">TC-AUTH-005</td><td>Password exactly 8 chars</td><td>—</td><td class="steps"><ol><li>Enter 8-char password</li><li>Submit</li></ol></td><td><span class="data">Abcd1234</span></td><td>Accepted; account created</td><td><span class="tag t-bnd">Boundary</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-006" data-type="Negative" data-prio="High"><td class="id">TC-AUTH-006</td><td>Duplicate email</td><td>customer@shop.com exists</td><td class="steps"><ol><li>Register with existing email</li><li>Submit</li></ol></td><td><span class="data">customer@shop.com</span></td><td>Error "email already in use"; no duplicate user</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-007" data-type="Negative" data-prio="Medium"><td class="id">TC-AUTH-007</td><td>Name whitespace only</td><td>—</td><td class="steps"><ol><li>Enter name as spaces</li><li>Submit</li></ol></td><td><span class="data">"   "</span></td><td>Trimmed → treated as empty → required error</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-008" data-type="Negative" data-prio="Medium"><td class="id">TC-AUTH-008</td><td>Script injection in name</td><td>—</td><td class="steps"><ol><li>Name = &lt;script&gt;alert(1)&lt;/script&gt;</li><li>Submit, then view name anywhere it renders</li></ol></td><td><span class="data">&lt;script&gt;…</span></td><td>Stored/escaped as text; no script executes (React escaping)</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-009" data-type="Positive" data-prio="Low"><td class="id">TC-AUTH-009</td><td>Link to login present</td><td>—</td><td class="steps"><ol><li>On /register click "Sign in"/login link</li></ol></td><td>—</td><td>Navigates to /login</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <!-- LOGIN -->
+  <section class="suite">
+    <h2>1.2 Login — /login</h2>
+    <p class="sub">Fields: <span class="data">email</span>, <span class="data">password</span>. Role-based redirect after success. Rate limited in prod.</p>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-AUTH-010" data-type="Positive" data-prio="High"><td class="id">TC-AUTH-010</td><td>Customer login → home</td><td>Seeded</td><td class="steps"><ol><li>Login as customer@shop.com</li></ol></td><td><span class="data">customer@shop.com / Password123!</span></td><td>Session set; redirected to /; header shows avatar menu</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-011" data-type="Positive" data-prio="High"><td class="id">TC-AUTH-011</td><td>Admin login → /dashboard</td><td>Seeded</td><td class="steps"><ol><li>Login as admin@shop.com</li></ol></td><td><span class="data">admin@shop.com / Password123!</span></td><td>Redirected to /dashboard</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-012" data-type="Positive" data-prio="Medium"><td class="id">TC-AUTH-012</td><td>Manager &amp; Support land on their dashboards</td><td>Seeded</td><td class="steps"><ol><li>Login manager@ → /shop-manager/dashboard</li><li>Login support@ → /support/dashboard</li></ol></td><td><span class="data">manager@ / support@</span></td><td>Each lands on its role dashboard</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-013" data-type="Negative" data-prio="High"><td class="id">TC-AUTH-013</td><td>Wrong password</td><td>—</td><td class="steps"><ol><li>Valid email, wrong password</li><li>Submit</li></ol></td><td><span class="data">customer@shop.com / wrong</span></td><td>Generic "invalid credentials"; no session</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-014" data-type="Negative" data-prio="Medium"><td class="id">TC-AUTH-014</td><td>Unknown email</td><td>—</td><td class="steps"><ol><li>Enter non-existent email</li><li>Submit</li></ol></td><td><span class="data">nobody@x.com</span></td><td>Same generic error (no account enumeration)</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-015" data-type="Negative" data-prio="High"><td class="id">TC-AUTH-015</td><td>Empty fields</td><td>—</td><td class="steps"><ol><li>Submit with empty email + password</li></ol></td><td><span class="data">"" / ""</span></td><td>Required validation; submit blocked</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-016" data-type="Negative" data-prio="Medium"><td class="id">TC-AUTH-016</td><td>Rate limiting</td><td>Prod build, ratelimit on</td><td class="steps"><ol><li>Submit wrong creds repeatedly (&gt;5x quickly)</li></ol></td><td>—</td><td>HTTP 429 "Too many requests" after threshold</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-017" data-type="Negative" data-prio="High"><td class="id">TC-AUTH-017</td><td>Banned user blocked</td><td>A user with banned=true</td><td class="steps"><ol><li>Login as banned user</li></ol></td><td>—</td><td>Login denied with ban message; no session</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-018" data-type="Positive" data-prio="Low"><td class="id">TC-AUTH-018</td><td>Already-authenticated redirect</td><td>Logged in</td><td class="steps"><ol><li>Visit /login while logged in</li></ol></td><td>—</td><td>Proxy redirects to role home (no login form)</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-019" data-type="Positive" data-prio="Low"><td class="id">TC-AUTH-019</td><td>Redirect param honoured</td><td>Anonymous</td><td class="steps"><ol><li>Visit a gated URL → bounced to /login?redirect=…</li><li>Login</li></ol></td><td><span class="data">?redirect=/orders</span></td><td>After login, returns to the originally requested page</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <!-- FORGOT / RESET -->
+  <section class="suite">
+    <h2>1.3 Forgot &amp; Reset Password</h2>
+    <p class="sub">/forgot-password (email) · /reset-password (token + new password + confirm).</p>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-AUTH-020" data-type="Positive" data-prio="High"><td class="id">TC-AUTH-020</td><td>Request reset for known email</td><td>Mailtrap configured</td><td class="steps"><ol><li>Open /forgot-password</li><li>Enter known email; submit</li></ol></td><td><span class="data">customer@shop.com</span></td><td>Generic success message; reset email arrives in Mailtrap</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-021" data-type="Negative" data-prio="Medium"><td class="id">TC-AUTH-021</td><td>Unknown email — no enumeration</td><td>—</td><td class="steps"><ol><li>Enter unknown email; submit</li></ol></td><td><span class="data">nobody@x.com</span></td><td>Same generic success message (does not reveal account existence)</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-022" data-type="Negative" data-prio="Medium"><td class="id">TC-AUTH-022</td><td>Invalid email format</td><td>—</td><td class="steps"><ol><li>Enter malformed email; submit</li></ol></td><td><span class="data">abc@</span></td><td>Validation error; no request sent</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-023" data-type="Positive" data-prio="High"><td class="id">TC-AUTH-023</td><td>Reset with valid token</td><td>Valid token from email</td><td class="steps"><ol><li>Open reset link</li><li>Enter matching new password + confirm</li><li>Submit</li></ol></td><td><span class="data">NewPass123 / NewPass123</span></td><td>Password updated; can log in with new password</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-024" data-type="Negative" data-prio="High"><td class="id">TC-AUTH-024</td><td>Confirm password mismatch</td><td>Valid token</td><td class="steps"><ol><li>New + confirm differ</li><li>Submit</li></ol></td><td><span class="data">NewPass123 / Other999</span></td><td>"Passwords do not match"; not updated</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-025" data-type="Boundary" data-prio="Medium"><td class="id">TC-AUTH-025</td><td>New password too short</td><td>Valid token</td><td class="steps"><ol><li>Enter 7-char password</li><li>Submit</li></ol></td><td><span class="data">Abc1234</span></td><td>Rejected for min length</td><td><span class="tag t-bnd">Boundary</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-026" data-type="Negative" data-prio="High"><td class="id">TC-AUTH-026</td><td>Expired / invalid token</td><td>Used or tampered token</td><td class="steps"><ol><li>Open reset link with bad token</li><li>Submit new password</li></ol></td><td><span class="data">?token=bad</span></td><td>Error "invalid or expired"; password unchanged</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <!-- TWO FACTOR -->
+  <section class="suite">
+    <h2>1.4 Two-Factor — /profile (Security) &amp; /two-factor</h2>
+    <p class="sub">Enable requires password confirm → TOTP secret/QR → verify 6-digit code. Disable requires password.</p>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-AUTH-027" data-type="Positive" data-prio="Medium"><td class="id">TC-AUTH-027</td><td>Enable 2FA</td><td>Logged in, 2FA off</td><td class="steps"><ol><li>Security tab → Enable</li><li>Confirm password</li><li>Scan QR / copy secret</li><li>Enter valid TOTP code</li></ol></td><td><span class="data">password + 6-digit code</span></td><td>2FA enabled; backup/secret shown; status flips to enabled</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-028" data-type="Negative" data-prio="Medium"><td class="id">TC-AUTH-028</td><td>Enable — wrong password</td><td>2FA off</td><td class="steps"><ol><li>Enable → enter wrong password</li></ol></td><td><span class="data">wrongpw</span></td><td>Error; setup does not proceed</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-029" data-type="Negative" data-prio="Medium"><td class="id">TC-AUTH-029</td><td>Verify — wrong/short code</td><td>Setup in progress</td><td class="steps"><ol><li>Enter 5 digits / wrong code</li><li>Submit</li></ol></td><td><span class="data">12345</span>, <span class="data">000000</span></td><td>Rejected "invalid code"; 2FA stays off</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-030" data-type="Positive" data-prio="Medium"><td class="id">TC-AUTH-030</td><td>Login prompts for 2FA</td><td>2FA enabled user</td><td class="steps"><ol><li>Login with email+password</li><li>Enter TOTP at /two-factor</li></ol></td><td><span class="data">valid code</span></td><td>Two-step: code required before session granted</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-031" data-type="Positive" data-prio="Low"><td class="id">TC-AUTH-031</td><td>Disable 2FA</td><td>2FA enabled</td><td class="steps"><ol><li>Security → Disable</li><li>Confirm password</li></ol></td><td><span class="data">password</span></td><td>2FA disabled; future logins skip code</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-AUTH-032" data-type="Positive" data-prio="Medium"><td class="id">TC-AUTH-032</td><td>Logout</td><td>Logged in</td><td class="steps"><ol><li>Avatar menu → Logout</li></ol></td><td>—</td><td>Session cleared; protected routes redirect to /login</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <footer class="note">Module 1 of 11 · <a href="index.html">back to index</a></footer>
+</div>
+<script src="filter.js"></script>
+</body>
+</html>

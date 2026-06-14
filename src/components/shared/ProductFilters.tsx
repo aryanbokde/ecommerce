@@ -35,11 +35,21 @@ export interface FilterState {
 interface ProductFiltersProps {
   categories: Category[];
   currentFilters: FilterState;
+  /**
+   * Which URL param drives category selection + which category field to match.
+   * The /products listing filters by `categoryId`; the /shop category view is
+   * keyed by `category` (slug). Defaults to id-based.
+   */
+  categoryParam?: "categoryId" | "category";
+  /** Currently-selected category value (id or slug, matching categoryParam). */
+  activeCategoryValue?: string;
 }
 
 export function ProductFilters({
   categories,
   currentFilters,
+  categoryParam = "categoryId",
+  activeCategoryValue,
 }: ProductFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -62,8 +72,11 @@ export function ProductFilters({
   const currentSort = `${currentFilters.sortBy ?? "createdAt"}:${
     currentFilters.sortOrder ?? "desc"
   }`;
+  const activeCategory =
+    activeCategoryValue ??
+    (categoryParam === "categoryId" ? currentFilters.categoryId : undefined);
   const hasFilters = Boolean(
-    currentFilters.categoryId ||
+    activeCategory ||
       currentFilters.minPrice ||
       currentFilters.maxPrice ||
       currentFilters.search
@@ -79,7 +92,8 @@ export function ProductFilters({
             <p className="text-xs text-muted-foreground">No categories</p>
           ) : (
             categories.map((c) => {
-              const checked = currentFilters.categoryId === c.id;
+              const cValue = categoryParam === "category" ? c.slug : c.id;
+              const checked = activeCategory === cValue;
               return (
                 <label
                   key={c.id}
@@ -88,7 +102,7 @@ export function ProductFilters({
                   <Checkbox
                     checked={checked}
                     onCheckedChange={(value) =>
-                      setParams({ categoryId: value ? c.id : null })
+                      setParams({ [categoryParam]: value ? cValue : null })
                     }
                   />
                   <span className="flex-1">{c.name}</span>

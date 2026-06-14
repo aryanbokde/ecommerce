@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QA · Admin</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="admin">
+<header class="page">
+  <h1>8 · Admin</h1>
+  <p>admin role — Dashboard, Product/Category CRUD, Orders, Users, Settings, Email, Logs, Health</p>
+</header>
+<div class="wrap">
+  <a class="back" href="index.html">← All modules</a>
+  <div class="cards">
+    <div class="card"><div class="n" id="c-total">0</div><div class="l">Total</div></div>
+    <div class="card pass"><div class="n" id="c-pass">0</div><div class="l">Pass</div></div>
+    <div class="card fail"><div class="n" id="c-fail">0</div><div class="l">Fail</div></div>
+    <div class="card pend"><div class="n" id="c-pend">0</div><div class="l">Untested</div></div>
+  </div>
+  <div class="toolbar">
+    <input id="search" type="search" placeholder="Search test cases…" />
+    <select id="f-type"><option value="">All types</option><option>Positive</option><option>Negative</option><option>Boundary</option></select>
+    <select id="f-prio"><option value="">All priorities</option><option>High</option><option>Medium</option><option>Low</option></select>
+  </div>
+
+  <section class="suite">
+    <h2>8.1 Dashboard &amp; access — /dashboard</h2>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-ADM-001" data-type="Positive" data-prio="High"><td class="id">TC-ADM-001</td><td>Dashboard loads with analytics</td><td>Admin</td><td class="steps"><ol><li>Login admin → /dashboard</li></ol></td><td>—</td><td>Stat cards, revenue chart (blue), order-status donut (palette), top products/categories render</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-002" data-type="Negative" data-prio="High"><td class="id">TC-ADM-002</td><td>Non-admin blocked</td><td>customer/manager/support</td><td class="steps"><ol><li>Open /dashboard as each</li></ol></td><td>—</td><td>Redirect to own home / 403 (RBAC via proxy)</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="suite">
+    <h2>8.2 Products CRUD — /dashboard/products</h2>
+    <p class="sub">Fields: <span class="data">name</span>(req,≤255) · <span class="data">slug</span>(kebab) · <span class="data">description</span>(≤20k) · <span class="data">price</span>(&gt;0,req) · <span class="data">comparePrice</span>(&gt;0) · <span class="data">costPrice</span>(&gt;0) · <span class="data">sku</span>(≤100) · <span class="data">barcode</span>(≤100) · <span class="data">stock</span>(int≥0) · <span class="data">lowStockAt</span>(int≥0) · <span class="data">weight</span>(&gt;0) · <span class="data">categoryId</span> · <span class="data">images</span>(≤20) · <span class="data">tags</span>(≤50) · <span class="data">isActive</span> · <span class="data">isFeatured</span>.</p>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-ADM-003" data-type="Positive" data-prio="High"><td class="id">TC-ADM-003</td><td>Create product (all valid)</td><td>Admin</td><td class="steps"><ol><li>New product</li><li>Fill name, price, stock, category, image</li><li>Save</li></ol></td><td><span class="data">"Test Phone" / 9999 / 10 / Smartphones</span></td><td>Created; appears in list + storefront (if active); slug auto-derived</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-004" data-type="Negative" data-prio="High"><td class="id">TC-ADM-004</td><td>Name required</td><td>—</td><td class="steps"><ol><li>Blank name; save</li></ol></td><td><span class="data">name=""</span></td><td>"Name is required"; not saved</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-005" data-type="Negative" data-prio="High"><td class="id">TC-ADM-005</td><td>Price must be positive</td><td>—</td><td class="steps"><ol><li>price=0 then -5; save</li></ol></td><td><span class="data">0 / -5</span></td><td>Rejected (must be &gt; 0)</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-006" data-type="Negative" data-prio="Medium"><td class="id">TC-ADM-006</td><td>Stock must be non-negative integer</td><td>—</td><td class="steps"><ol><li>stock=-1 then 2.5</li></ol></td><td><span class="data">-1 / 2.5</span></td><td>Rejected (int ≥ 0)</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-007" data-type="Negative" data-prio="Medium"><td class="id">TC-ADM-007</td><td>Invalid slug format</td><td>—</td><td class="steps"><ol><li>slug="Bad Slug!"; save</li></ol></td><td><span class="data">Bad Slug!</span></td><td>"Slug must be kebab-case" error</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-008" data-type="Negative" data-prio="Medium"><td class="id">TC-ADM-008</td><td>Duplicate slug/SKU</td><td>Existing slug</td><td class="steps"><ol><li>Reuse an existing slug; save</li></ol></td><td>—</td><td>Conflict handled (auto-uniquified or error); no DB violation</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-009" data-type="Boundary" data-prio="Low"><td class="id">TC-ADM-009</td><td>comparePrice / costPrice / weight positivity</td><td>—</td><td class="steps"><ol><li>Set each to 0/negative</li></ol></td><td><span class="data">0 / -1</span></td><td>Rejected when present (must be &gt; 0); optional when blank</td><td><span class="tag t-bnd">Boundary</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-010" data-type="Boundary" data-prio="Low"><td class="id">TC-ADM-010</td><td>Images max 20 / tags max 50</td><td>—</td><td class="steps"><ol><li>Add 21 images / 51 tags</li></ol></td><td><span class="data">21 / 51</span></td><td>Rejected over limit</td><td><span class="tag t-bnd">Boundary</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-011" data-type="Positive" data-prio="Medium"><td class="id">TC-ADM-011</td><td>Image upload</td><td>—</td><td class="steps"><ol><li>Upload product image(s)</li></ol></td><td><span class="data">jpg/png &lt;5MB</span></td><td>Uploads + preview; saved on product</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-012" data-type="Positive" data-prio="Medium"><td class="id">TC-ADM-012</td><td>isActive / isFeatured toggles</td><td>—</td><td class="steps"><ol><li>Toggle active off → on; featured on</li></ol></td><td>—</td><td>Inactive hidden on storefront; featured shows in featured sections</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-013" data-type="Positive" data-prio="High"><td class="id">TC-ADM-013</td><td>Edit product</td><td>Product exists</td><td class="steps"><ol><li>Edit price + stock; save</li></ol></td><td>—</td><td>PATCH persists; only changed fields updated (no silent resets)</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-014" data-type="Positive" data-prio="Medium"><td class="id">TC-ADM-014</td><td>Delete / deactivate product</td><td>Product exists</td><td class="steps"><ol><li>Delete or deactivate</li></ol></td><td>—</td><td>Removed/hidden from storefront; audit logged</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-015" data-type="Positive" data-prio="Low"><td class="id">TC-ADM-015</td><td>List search / filter / pagination</td><td>—</td><td class="steps"><ol><li>Search, filter, paginate the admin list</li></ol></td><td>—</td><td>Includes inactive products (admin view); controls work</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="suite">
+    <h2>8.3 Categories CRUD — /dashboard/categories</h2>
+    <p class="sub">Fields: <span class="data">name</span>(req) · <span class="data">slug</span>(kebab) · <span class="data">parentId</span> · <span class="data">description</span> · <span class="data">image</span> · <span class="data">isActive</span> · <span class="data">sortOrder</span>(int≥0).</p>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-ADM-016" data-type="Positive" data-prio="High"><td class="id">TC-ADM-016</td><td>Create category</td><td>Admin</td><td class="steps"><ol><li>Add Category → name + parent + sortOrder</li><li>Save</li></ol></td><td><span class="data">"Audio" / parent=Electronics</span></td><td>Created; appears in tree, mega menu (once it has products)</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-017" data-type="Negative" data-prio="High"><td class="id">TC-ADM-017</td><td>Name required</td><td>—</td><td class="steps"><ol><li>Blank name; save</li></ol></td><td><span class="data">name=""</span></td><td>"Name is required"</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-018" data-type="Negative" data-prio="Medium"><td class="id">TC-ADM-018</td><td>Invalid slug / duplicate name</td><td>—</td><td class="steps"><ol><li>slug="Bad!" then duplicate name</li></ol></td><td><span class="data">Bad! / existing</span></td><td>kebab error / 409 duplicate; no bad write</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-019" data-type="Negative" data-prio="Medium"><td class="id">TC-ADM-019</td><td>Category cannot be its own parent</td><td>Editing a category</td><td class="steps"><ol><li>Set parentId = itself; save</li></ol></td><td>—</td><td>Rejected (422)</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-020" data-type="Boundary" data-prio="Low"><td class="id">TC-ADM-020</td><td>sortOrder negative</td><td>—</td><td class="steps"><ol><li>sortOrder=-1; save</li></ol></td><td><span class="data">-1</span></td><td>Rejected (int ≥ 0)</td><td><span class="tag t-bnd">Boundary</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-021" data-type="Positive" data-prio="Medium"><td class="id">TC-ADM-021</td><td>Edit / reorder / toggle active / delete</td><td>Category exists</td><td class="steps"><ol><li>Rename, change sortOrder, toggle active, delete</li></ol></td><td>—</td><td>Changes persist; inactive hidden on storefront; ordering respected</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="suite">
+    <h2>8.4 Orders — /dashboard/orders</h2>
+    <p class="sub">Status transitions enforced: pending→confirmed/cancelled → processing → shipped → delivered (terminal); returned/cancelled terminal.</p>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-ADM-022" data-type="Positive" data-prio="High"><td class="id">TC-ADM-022</td><td>Orders list + filters</td><td>Admin</td><td class="steps"><ol><li>Open list; filter by status/payment</li></ol></td><td>—</td><td>All orders; badges palette-correct (shipped=orange); filters work</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-023" data-type="Positive" data-prio="High"><td class="id">TC-ADM-023</td><td>Valid status transition</td><td>pending order</td><td class="steps"><ol><li>Select next status → Update Status</li></ol></td><td><span class="data">pending→confirmed</span></td><td>Status updates; timeline + sidebar pending-badge refresh; toast</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-024" data-type="Negative" data-prio="Medium"><td class="id">TC-ADM-024</td><td>Invalid transition blocked</td><td>delivered order</td><td class="steps"><ol><li>Attempt to change a terminal order</li></ol></td><td>—</td><td>No options offered; "no further changes"</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-025" data-type="Positive" data-prio="Medium"><td class="id">TC-ADM-025</td><td>Cancel returns stock</td><td>confirmed order</td><td class="steps"><ol><li>Set status cancelled → confirm</li></ol></td><td>—</td><td>Confirm dialog; stock restored; status cancelled</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-026" data-type="Positive" data-prio="Medium"><td class="id">TC-ADM-026</td><td>Approve / reject return</td><td>Return requested</td><td class="steps"><ol><li>Open order; approve/reject return</li></ol></td><td>—</td><td>Return status updates; customer sees result</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-027" data-type="Negative" data-prio="Low"><td class="id">TC-ADM-027</td><td>Update Status disabled until selected</td><td>Order detail</td><td class="steps"><ol><li>Observe button before choosing status</li></ol></td><td>—</td><td>Button clearly disabled (muted) until a target chosen</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="suite">
+    <h2>8.5 Users — /dashboard/users</h2>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-ADM-028" data-type="Positive" data-prio="High"><td class="id">TC-ADM-028</td><td>Users list + role filter</td><td>Admin</td><td class="steps"><ol><li>Open users; filter by role; search</li></ol></td><td>—</td><td>Users with role badges (palette), status, verified; search works</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-029" data-type="Positive" data-prio="High"><td class="id">TC-ADM-029</td><td>Change user role</td><td>—</td><td class="steps"><ol><li>Change a user's role; save</li></ol></td><td><span class="data">customer→support</span></td><td>Role updates; that user's access changes on next session; audit logged</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-030" data-type="Positive" data-prio="Medium"><td class="id">TC-ADM-030</td><td>Ban / unban user</td><td>—</td><td class="steps"><ol><li>Ban a user (reason); later unban</li></ol></td><td><span class="data">reason</span></td><td>Banned user cannot log in; unban restores access</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-031" data-type="Negative" data-prio="Medium"><td class="id">TC-ADM-031</td><td>Cannot self-demote/ban (guard)</td><td>Own admin account</td><td class="steps"><ol><li>Try to ban/demote yourself</li></ol></td><td>—</td><td>Prevented (no lockout) — verify guard</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="suite">
+    <h2>8.6 Store Settings — /dashboard/settings/shop</h2>
+    <p class="sub">Fields: store name, logo (upload/URL), address, phone, support email, currency, tax %, free-shipping over, shipping fee, allow cancellations, allow returns, return window (days), social URLs, meta title, meta description.</p>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-ADM-032" data-type="Positive" data-prio="High"><td class="id">TC-ADM-032</td><td>Save settings</td><td>Admin</td><td class="steps"><ol><li>Change tax %, free-ship, shipping fee</li><li>Save changes</li></ol></td><td><span class="data">tax 18 / free 999 / fee 99</span></td><td>Saved; storefront cart math reflects new values</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-033" data-type="Negative" data-prio="Medium"><td class="id">TC-ADM-033</td><td>Numeric fields reject bad input</td><td>—</td><td class="steps"><ol><li>tax = -5 / abc; fee = -1</li></ol></td><td><span class="data">-5 / abc</span></td><td>Rejected/validated; not saved</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-034" data-type="Positive" data-prio="High"><td class="id">TC-ADM-034</td><td>Allow cancellations / returns toggles</td><td>—</td><td class="steps"><ol><li>Turn off cancellations + returns; save</li></ol></td><td>—</td><td>Customer order detail hides Cancel / Return controls accordingly</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-035" data-type="Positive" data-prio="Low"><td class="id">TC-ADM-035</td><td>Return window respected</td><td>Returns on</td><td class="steps"><ol><li>Set window=7; deliver an order; test day 8</li></ol></td><td><span class="data">7</span></td><td>Return offered within window only</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-036" data-type="Negative" data-prio="Low"><td class="id">TC-ADM-036</td><td>Discard / dirty-state</td><td>Unsaved edits</td><td class="steps"><ol><li>Edit then Discard</li></ol></td><td>—</td><td>Reverts; Save disabled when no unsaved changes</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="suite">
+    <h2>8.7 Email Templates · Logs · Health</h2>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-ADM-037" data-type="Positive" data-prio="Medium"><td class="id">TC-ADM-037</td><td>Edit email template + preview</td><td>/dashboard/settings/email</td><td class="steps"><ol><li>Edit a template; preview; save</li></ol></td><td>—</td><td>Preview updates; saved; placeholders intact</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-038" data-type="Positive" data-prio="Low"><td class="id">TC-ADM-038</td><td>Error logs list + detail</td><td>/dashboard/error-logs</td><td class="steps"><ol><li>Open log; mark resolved/filter</li></ol></td><td>—</td><td>Logs listed by level/route/time; detail viewable</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-039" data-type="Positive" data-prio="Low"><td class="id">TC-ADM-039</td><td>Audit logs record admin actions</td><td>Did CRUD above</td><td class="steps"><ol><li>Open /dashboard/audit-logs</li></ol></td><td>—</td><td>Create/update/role-change/ban events recorded with actor</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADM-040" data-type="Positive" data-prio="Low"><td class="id">TC-ADM-040</td><td>Site Health</td><td>/dashboard/health</td><td class="steps"><ol><li>Open health; Refresh now</li></ol></td><td>—</td><td>DB/memory/uptime, env "Configured" flags, web vitals; refresh works</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <footer class="note">Module 8 of 11 · <a href="index.html">back to index</a></footer>
+</div>
+<script src="filter.js"></script>
+</body>
+</html>

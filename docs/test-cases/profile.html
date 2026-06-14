@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QA · Profile &amp; Addresses</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="profile">
+<header class="page">
+  <h1>2 · Profile &amp; Addresses</h1>
+  <p>User &amp; Address models — Profile edit, change password, address CRUD</p>
+</header>
+<div class="wrap">
+  <a class="back" href="index.html">← All modules</a>
+  <div class="cards">
+    <div class="card"><div class="n" id="c-total">0</div><div class="l">Total</div></div>
+    <div class="card pass"><div class="n" id="c-pass">0</div><div class="l">Pass</div></div>
+    <div class="card fail"><div class="n" id="c-fail">0</div><div class="l">Fail</div></div>
+    <div class="card pend"><div class="n" id="c-pend">0</div><div class="l">Untested</div></div>
+  </div>
+  <div class="toolbar">
+    <input id="search" type="search" placeholder="Search test cases…" />
+    <select id="f-type"><option value="">All types</option><option>Positive</option><option>Negative</option><option>Boundary</option></select>
+    <select id="f-prio"><option value="">All priorities</option><option>High</option><option>Medium</option><option>Low</option></select>
+  </div>
+
+  <section class="suite">
+    <h2>2.1 Profile tab — /profile</h2>
+    <p class="sub">Fields: <span class="data">avatar</span> (upload or image URL, max 2048), <span class="data">name</span> (required, max 120), <span class="data">email</span> (read-only), <span class="data">phone</span> (max 20).</p>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-PROF-001" data-type="Positive" data-prio="High"><td class="id">TC-PROF-001</td><td>Update name + phone</td><td>Logged in customer</td><td class="steps"><ol><li>Profile tab</li><li>Change name + phone</li><li>Save changes</li></ol></td><td><span class="data">Test C. / +91 9876543210</span></td><td>Success toast; values persist after reload</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-PROF-002" data-type="Negative" data-prio="High"><td class="id">TC-PROF-002</td><td>Name empty</td><td>—</td><td class="steps"><ol><li>Clear name</li><li>Save</li></ol></td><td><span class="data">name=""</span></td><td>"Required" error; not saved</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-PROF-003" data-type="Boundary" data-prio="Low"><td class="id">TC-PROF-003</td><td>Name at 120 chars</td><td>—</td><td class="steps"><ol><li>Enter 120-char name; save</li><li>Then try 121</li></ol></td><td><span class="data">120 vs 121 chars</span></td><td>120 accepted; 121 rejected/truncated</td><td><span class="tag t-bnd">Boundary</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-PROF-004" data-type="Negative" data-prio="Medium"><td class="id">TC-PROF-004</td><td>Email is read-only</td><td>—</td><td class="steps"><ol><li>Attempt to edit email field</li></ol></td><td>—</td><td>Field disabled; "Email can't be changed here"</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-PROF-005" data-type="Positive" data-prio="Medium"><td class="id">TC-PROF-005</td><td>Upload avatar image</td><td>—</td><td class="steps"><ol><li>Click Upload, pick JPG/PNG &lt;5MB</li><li>Save</li></ol></td><td><span class="data">avatar.png</span></td><td>Image uploads (Cloudinary/local), preview + header avatar update</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-PROF-006" data-type="Negative" data-prio="Medium"><td class="id">TC-PROF-006</td><td>Reject oversized / wrong-type file</td><td>—</td><td class="steps"><ol><li>Upload &gt;5MB or .exe/.txt</li></ol></td><td><span class="data">big.gif 6MB / file.exe</span></td><td>Rejected with size/type message; not uploaded</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-PROF-007" data-type="Positive" data-prio="Low"><td class="id">TC-PROF-007</td><td>Set avatar via image URL</td><td>—</td><td class="steps"><ol><li>Paste image URL; save</li></ol></td><td><span class="data">https://…/a.jpg</span></td><td>Avatar set from URL</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-PROF-008" data-type="Negative" data-prio="Low"><td class="id">TC-PROF-008</td><td>Phone over max (20)</td><td>—</td><td class="steps"><ol><li>Enter 21+ chars; save</li></ol></td><td><span class="data">21 chars</span></td><td>Rejected/limited to 20</td><td><span class="tag t-bnd">Boundary</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="suite">
+    <h2>2.2 Change password — /profile (Security)</h2>
+    <p class="sub">Fields: <span class="data">current</span>, <span class="data">new</span> (min 8), <span class="data">confirm</span>.</p>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-PROF-009" data-type="Positive" data-prio="High"><td class="id">TC-PROF-009</td><td>Change password successfully</td><td>Know current pw</td><td class="steps"><ol><li>Security tab</li><li>current + new + confirm</li><li>Update password</li></ol></td><td><span class="data">Password123! → NewPass123</span></td><td>Success; can log in with new password</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-PROF-010" data-type="Negative" data-prio="High"><td class="id">TC-PROF-010</td><td>Wrong current password</td><td>—</td><td class="steps"><ol><li>Enter wrong current; valid new/confirm</li></ol></td><td><span class="data">current=wrong</span></td><td>Error "couldn't change password"; unchanged</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-PROF-011" data-type="Negative" data-prio="High"><td class="id">TC-PROF-011</td><td>New ≠ confirm</td><td>—</td><td class="steps"><ol><li>new + mismatching confirm</li></ol></td><td><span class="data">NewPass123 / Other999</span></td><td>"Passwords do not match"; not changed</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-PROF-012" data-type="Boundary" data-prio="Medium"><td class="id">TC-PROF-012</td><td>New password too short</td><td>—</td><td class="steps"><ol><li>new = 7 chars</li></ol></td><td><span class="data">Abc1234</span></td><td>Rejected for min length</td><td><span class="tag t-bnd">Boundary</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-PROF-013" data-type="Negative" data-prio="Low"><td class="id">TC-PROF-013</td><td>Empty fields</td><td>—</td><td class="steps"><ol><li>Submit all blank</li></ol></td><td>—</td><td>Required validation; blocked</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="suite">
+    <h2>2.3 Addresses — /profile (Addresses)</h2>
+    <p class="sub">AddressForm fields: <span class="data">label</span>(req,≤50), <span class="data">fullName</span>(req,≤120), <span class="data">phone</span>(req,3–20), <span class="data">line1</span>(req,≤255), <span class="data">line2</span>(opt), <span class="data">city</span>(req), <span class="data">state</span>(req), <span class="data">postalCode</span>(req,≤20), <span class="data">country</span>(exactly 2 letters), <span class="data">isDefault</span>.</p>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-ADDR-001" data-type="Positive" data-prio="High"><td class="id">TC-ADDR-001</td><td>Add valid address</td><td>Logged in</td><td class="steps"><ol><li>Add new address</li><li>Fill all required</li><li>Save</li></ol></td><td><span class="data">Home / John / +9199… / line1 / Mumbai / MH / 400001 / IN</span></td><td>Address saved + listed</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADDR-002" data-type="Negative" data-prio="High"><td class="id">TC-ADDR-002</td><td>Each required field empty</td><td>—</td><td class="steps"><ol><li>Leave label / fullName / phone / line1 / city / state / postalCode blank one at a time</li><li>Save</li></ol></td><td><span class="data">required=""</span></td><td>Inline "Required" on the blank field; save blocked</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADDR-003" data-type="Negative" data-prio="High"><td class="id">TC-ADDR-003</td><td>Country not 2 letters</td><td>—</td><td class="steps"><ol><li>country = "I" then "IND"</li><li>Save</li></ol></td><td><span class="data">I / IND</span></td><td>"2-letter code" error; value upper-cased</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADDR-004" data-type="Boundary" data-prio="Medium"><td class="id">TC-ADDR-004</td><td>Phone min length (2 chars)</td><td>—</td><td class="steps"><ol><li>phone = "12"</li><li>Save</li></ol></td><td><span class="data">12</span></td><td>"Enter a valid phone number" (min 3)</td><td><span class="tag t-bnd">Boundary</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADDR-005" data-type="Boundary" data-prio="Low"><td class="id">TC-ADDR-005</td><td>Label over 50 chars</td><td>—</td><td class="steps"><ol><li>label = 51 chars</li></ol></td><td><span class="data">51 chars</span></td><td>Rejected/limited to 50</td><td><span class="tag t-bnd">Boundary</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADDR-006" data-type="Positive" data-prio="Medium"><td class="id">TC-ADDR-006</td><td>line2 optional</td><td>—</td><td class="steps"><ol><li>Leave line2 blank; fill rest; save</li></ol></td><td><span class="data">line2=""</span></td><td>Saves fine (line2 optional)</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADDR-007" data-type="Positive" data-prio="High"><td class="id">TC-ADDR-007</td><td>Set as default</td><td>≥1 address exists</td><td class="steps"><ol><li>Add/edit with "Set as default" checked</li></ol></td><td><span class="data">isDefault=true</span></td><td>This becomes default; previous default unset</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADDR-008" data-type="Positive" data-prio="High"><td class="id">TC-ADDR-008</td><td>Edit address</td><td>Address exists</td><td class="steps"><ol><li>Edit; change city; Update address</li></ol></td><td><span class="data">city=Pune</span></td><td>PUT succeeds; list reflects change</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADDR-009" data-type="Positive" data-prio="Medium"><td class="id">TC-ADDR-009</td><td>Delete address</td><td>Address exists</td><td class="steps"><ol><li>Delete; confirm</li></ol></td><td>—</td><td>Removed from list; not selectable at checkout</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADDR-010" data-type="Negative" data-prio="Medium"><td class="id">TC-ADDR-010</td><td>Cancel discards changes</td><td>Form open</td><td class="steps"><ol><li>Type values; click Cancel</li></ol></td><td>—</td><td>Form closes; nothing saved</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-ADDR-011" data-type="Negative" data-prio="Medium"><td class="id">TC-ADDR-011</td><td>Address ownership isolation</td><td>Two customers</td><td class="steps"><ol><li>As user A, try to edit/delete user B's address id via API</li></ol></td><td><span class="data">PUT /api/addresses/{B-id}</span></td><td>403/404 — cannot touch another user's address</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <footer class="note">Module 2 of 11 · <a href="index.html">back to index</a></footer>
+</div>
+<script src="filter.js"></script>
+</body>
+</html>

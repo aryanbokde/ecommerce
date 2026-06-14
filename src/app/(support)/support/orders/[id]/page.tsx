@@ -43,7 +43,7 @@ const inr = (v: unknown) =>
 const PAYMENT_STYLES: Record<string, string> = {
   paid: "bg-green-100 text-green-700",
   unpaid: "bg-amber-100 text-amber-700",
-  refunded: "bg-gray-100 text-gray-700",
+  refunded: "bg-muted text-muted-foreground",
   refund_pending: "bg-orange-100 text-orange-700",
   failed: "bg-red-100 text-red-700",
 };

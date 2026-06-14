@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QA · Support</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="support">
+<header class="page">
+  <h1>10 · Support</h1>
+  <p>support role — Order lookup, customer lookup, support notes</p>
+</header>
+<div class="wrap">
+  <a class="back" href="index.html">← All modules</a>
+  <div class="cards">
+    <div class="card"><div class="n" id="c-total">0</div><div class="l">Total</div></div>
+    <div class="card pass"><div class="n" id="c-pass">0</div><div class="l">Pass</div></div>
+    <div class="card fail"><div class="n" id="c-fail">0</div><div class="l">Fail</div></div>
+    <div class="card pend"><div class="n" id="c-pend">0</div><div class="l">Untested</div></div>
+  </div>
+  <div class="toolbar">
+    <input id="search" type="search" placeholder="Search test cases…" />
+    <select id="f-type"><option value="">All types</option><option>Positive</option><option>Negative</option><option>Boundary</option></select>
+    <select id="f-prio"><option value="">All priorities</option><option>High</option><option>Medium</option><option>Low</option></select>
+  </div>
+
+  <section class="suite">
+    <h2>10.1 Access &amp; dashboard — /support/dashboard</h2>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-SUP-001" data-type="Positive" data-prio="High"><td class="id">TC-SUP-001</td><td>Support dashboard loads</td><td>support@</td><td class="steps"><ol><li>Login → dashboard</li></ol></td><td>—</td><td>Search box, orders-today/awaiting/shipped cards, recent orders with status badges</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-SUP-002" data-type="Negative" data-prio="High"><td class="id">TC-SUP-002</td><td>Non-support blocked</td><td>customer/manager</td><td class="steps"><ol><li>Open /support/* as each</li></ol></td><td>—</td><td>Redirect/403 (RBAC)</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="suite">
+    <h2>10.2 Lookups — /support/orders · /support/customers · /support/products</h2>
+    <table><thead><tr><th>ID</th><th>Title</th><th>Precondition</th><th>Steps</th><th>Test Data</th><th>Expected Result</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr data-id="TC-SUP-003" data-type="Positive" data-prio="High"><td class="id">TC-SUP-003</td><td>Order lookup by number</td><td>—</td><td class="steps"><ol><li>Search an order number/email</li><li>Open detail</li></ol></td><td><span class="data">ORD-… / email</span></td><td>Matching order(s); detail read-only view with status, items, customer</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-high">High</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-SUP-004" data-type="Negative" data-prio="Low"><td class="id">TC-SUP-004</td><td>Lookup no match</td><td>—</td><td class="steps"><ol><li>Search nonsense</li></ol></td><td><span class="data">zzz</span></td><td>Empty state; no crash</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-SUP-005" data-type="Positive" data-prio="Medium"><td class="id">TC-SUP-005</td><td>Customer lookup + detail</td><td>—</td><td class="steps"><ol><li>Search a customer; open detail</li></ol></td><td><span class="data">customer@shop.com</span></td><td>Customer profile + their orders shown</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-SUP-006" data-type="Positive" data-prio="Medium"><td class="id">TC-SUP-006</td><td>Add support note</td><td>On order/customer detail</td><td class="steps"><ol><li>Type note; Add note</li></ol></td><td><span class="data">"called customer"</span></td><td>SupportNote saved + listed with author/time</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-SUP-007" data-type="Negative" data-prio="Low"><td class="id">TC-SUP-007</td><td>Empty note blocked</td><td>—</td><td class="steps"><ol><li>Submit empty note</li></ol></td><td>—</td><td>Add disabled/validation; nothing saved</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-SUP-008" data-type="Negative" data-prio="Medium"><td class="id">TC-SUP-008</td><td>Support is read-only on orders</td><td>Order detail (support)</td><td class="steps"><ol><li>Look for status-change controls</li></ol></td><td>—</td><td>Support can view + note, but not change order status (verify scope)</td><td><span class="tag t-neg">Negative</span></td><td><span class="tag p-med">Medium</span></td><td class="status" data-s=""></td></tr>
+      <tr data-id="TC-SUP-009" data-type="Positive" data-prio="Low"><td class="id">TC-SUP-009</td><td>Product lookup → view in store</td><td>—</td><td class="steps"><ol><li>/support/products → open a product</li></ol></td><td>—</td><td>Product info; "View in store" opens storefront page</td><td><span class="tag t-pos">Positive</span></td><td><span class="tag p-low">Low</span></td><td class="status" data-s=""></td></tr>
+    </tbody></table>
+  </section>
+
+  <footer class="note">Module 10 of 11 · <a href="index.html">back to index</a></footer>
+</div>
+<script src="filter.js"></script>
+</body>
+</html>

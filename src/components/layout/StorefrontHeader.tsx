@@ -1,8 +1,9 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Menu,
@@ -12,6 +13,8 @@ import {
   User as UserIcon,
   LayoutDashboard,
   LogOut,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
@@ -111,6 +114,27 @@ function CartButton({ count }: { count: number }) {
           </motion.span>
         )}
       </AnimatePresence>
+    </Button>
+  );
+}
+
+// Light/dark toggle for the storefront. next-themes persists the choice (cookie-
+// free localStorage key `theme`) and swaps the `.dark` class on <html>. Renders a
+// neutral placeholder until mounted to avoid an SSR/CSR icon mismatch.
+function ThemeToggle() {
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isDark = resolvedTheme === "dark";
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      aria-label="Toggle theme"
+      className="rounded-lg transition-colors hover:bg-muted"
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+    >
+      {mounted && isDark ? <Moon /> : <Sun />}
     </Button>
   );
 }
@@ -337,6 +361,8 @@ export function StorefrontHeader({
           >
             <Search />
           </Button>
+
+          <ThemeToggle />
 
           <CartButton count={displayCount} />
 

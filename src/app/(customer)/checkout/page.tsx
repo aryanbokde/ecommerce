@@ -1,18 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, ShoppingBag, CreditCard } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { CheckoutSteps } from "@/components/checkout/CheckoutSteps";
 import { AddressStep } from "@/components/checkout/AddressStep";
 import { PaymentStep } from "@/components/checkout/PaymentStep";
@@ -24,6 +16,12 @@ import { notifyWarning } from "@/lib/notify";
 const FREE_SHIPPING_THRESHOLD = 999;
 const SHIPPING_FEE = 99;
 const TAX_RATE = 0.18;
+
+const CHECKOUT_CRUMB = [
+  { label: "Home", href: "/" },
+  { label: "Cart", href: "/cart" },
+  { label: "Checkout" },
+];
 
 function formatPrice(value: number): string {
   return `₹${value.toLocaleString("en-IN", {
@@ -81,7 +79,12 @@ export default function CheckoutPage() {
   if (!cart) {
     return (
       <>
-        <CheckoutHero subtitle="Securing your checkout…" />
+        <PageHeader
+          title="Checkout"
+          breadcrumb={CHECKOUT_CRUMB}
+          icon={CreditCard}
+          subtitle="Securing your checkout…"
+        />
         <div className="mx-auto max-w-6xl px-4 pb-20 pt-10 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <Loader2 className="size-5 animate-spin" />
@@ -94,7 +97,12 @@ export default function CheckoutPage() {
 
   return (
     <>
-      <CheckoutHero subtitle="Complete your order in a few steps" />
+      <PageHeader
+        title="Checkout"
+        breadcrumb={CHECKOUT_CRUMB}
+        icon={CreditCard}
+        subtitle="Complete your order in a few steps"
+      />
       <div className="mx-auto max-w-6xl px-4 pb-20 pt-10 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
           <CheckoutSteps currentStep={step} />
@@ -115,45 +123,6 @@ export default function CheckoutPage() {
         </div>
       </div>
     </>
-  );
-}
-
-// Full-width hero band — flush under the site header, carrying the breadcrumb
-// (Home › Cart › Checkout) + page title. Matches the cart page treatment.
-function CheckoutHero({ subtitle }: { subtitle?: React.ReactNode }) {
-  return (
-    <div className="border-b border-border bg-gradient-to-b from-muted/50 to-background">
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink render={<Link href="/" />}>Home</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink render={<Link href="/cart" />}>Cart</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Checkout</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-        <div className="mt-3 flex items-center gap-3">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <CreditCard className="size-5" />
-          </span>
-          <div>
-            <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-              Checkout
-            </h1>
-            {subtitle && (
-              <p className="text-sm text-muted-foreground">{subtitle}</p>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 

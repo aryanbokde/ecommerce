@@ -16,13 +16,14 @@ import type { Category } from "@/types";
 
 export type CategoryCardVariant = "overlay" | "circle" | "gradient" | "minimal";
 
+// Palette-rotating gradients: sky · blue · navy · yellow · orange tints.
 const GRADIENTS = [
-  "from-violet-500 to-fuchsia-500",
-  "from-sky-500 to-blue-600",
-  "from-amber-500 to-orange-600",
-  "from-emerald-500 to-teal-600",
-  "from-rose-500 to-pink-600",
-  "from-indigo-500 to-purple-600",
+  "from-[#8ECAE6] to-[#219EBC]", // sky → blue
+  "from-[#219EBC] to-[#023047]", // blue → navy
+  "from-[#FFB703] to-[#FB8500]", // yellow → orange
+  "from-[#FB8500] to-[#E07700]", // orange
+  "from-[#023047] to-[#219EBC]", // navy → blue
+  "from-[#8ECAE6] to-[#FB8500]", // sky → orange
 ];
 
 const ICONS = [Shirt, Laptop, Home, BookOpen, ShoppingBag, Sparkles];

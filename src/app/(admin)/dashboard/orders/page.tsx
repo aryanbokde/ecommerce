@@ -75,7 +75,7 @@ const PAYMENT_STYLES: Record<string, string> = {
   unpaid: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
   refund_pending:
     "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-400",
-  refunded: "bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-300",
+  refunded: "bg-muted text-muted-foreground",
   failed: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400",
 };
 

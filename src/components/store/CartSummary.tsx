@@ -74,7 +74,7 @@ export function CartSummary({
               "h-full rounded-full",
               freeUnlocked
                 ? "bg-green-600"
-                : "bg-gradient-to-r from-primary to-primary/70"
+                : "bg-gradient-to-r from-[#219EBC] to-[#8ECAE6]"
             )}
             initial={{ width: 0 }}
             animate={{ width: `${freeShipPct}%` }}

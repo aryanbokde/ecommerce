@@ -17,7 +17,7 @@ export default function OpengraphImage() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #0a0a0a 0%, #1e1b4b 100%)",
+          background: "linear-gradient(135deg, #023047 0%, #219ebc 100%)",
           color: "#ffffff",
           fontFamily: "sans-serif",
         }}
@@ -25,7 +25,7 @@ export default function OpengraphImage() {
         <div style={{ fontSize: 120, fontWeight: 800, letterSpacing: -2 }}>
           MyShop
         </div>
-        <div style={{ fontSize: 40, color: "#a5b4fc", marginTop: 16 }}>
+        <div style={{ fontSize: 40, color: "#8ecae6", marginTop: 16 }}>
           Your one-stop online store
         </div>
       </div>

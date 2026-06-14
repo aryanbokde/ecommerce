@@ -34,7 +34,7 @@ export function TrustStrip() {
               key={title}
               className="group flex items-center gap-3 transition-all duration-300 sm:gap-4"
             >
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform duration-300 group-hover:-translate-y-0.5 sm:size-12">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-blue/12 text-brand-blue transition-transform duration-300 group-hover:-translate-y-0.5 sm:size-12">
                 <Icon className="size-5 sm:size-6" />
               </span>
               <div className="min-w-0">
