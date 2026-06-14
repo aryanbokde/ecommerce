@@ -9,7 +9,10 @@ import {
   MobileProductFilters,
 } from "@/components/shared/ProductFilters";
 import type { Product, Category } from "@/types";
-import { getCategoryTree } from "@/server/services/category.service";
+import {
+  getCategoryTree,
+  getCategoryAndDescendantIds,
+} from "@/server/services/category.service";
 import { getProducts } from "@/server/services/product.service";
 import { productQuerySchema } from "@/server/validators/product.schema";
 
@@ -64,7 +67,11 @@ async function fetchProducts(filters: Record<string, string>) {
       limit: String(PAGE_SIZE),
       isActive: "true",
     });
-    const result = await getProducts(query);
+    // A category filter spans the whole subtree (parent → child products).
+    const categoryIds = filters.categoryId
+      ? await getCategoryAndDescendantIds(filters.categoryId)
+      : undefined;
+    const result = await getProducts({ ...query, categoryIds });
     return JSON.parse(JSON.stringify(result)) as {
       products: Product[];
       total: number;
