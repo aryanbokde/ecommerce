@@ -82,10 +82,11 @@ function validate<S extends z.ZodObject<z.ZodRawShape>>(
   );
 }
 
-// Validate client vars everywhere (they're inlined → always strict at build).
-// Server vars only on the server; lenient under skip OR during `next build`, so
-// the build never needs runtime secrets (runtime cold start still validates).
-const clientEnv = validate(clientSchema, clientInput, "client", skip);
+// Client vars are inlined; normally strict, but lenient during `next build` too
+// so a missing NEXT_PUBLIC_* never hard-crashes the build (consumers fall back).
+// Runtime still validates strictly. Server vars: server-only, lenient under skip
+// or build.
+const clientEnv = validate(clientSchema, clientInput, "client", skip || isBuild);
 const serverEnv =
   isServer || skip
     ? validate(serverSchema, process.env, "server", skip || isBuild)

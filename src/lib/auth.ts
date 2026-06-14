@@ -169,7 +169,15 @@ export const auth = betterAuth({
       : []),
     ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
   ],
-  secret: process.env.BETTER_AUTH_SECRET!,
+  // better-auth throws "You are using the default secret" if this is unset. The
+  // auth module is imported while `next build` collects page data, so fall back
+  // to a non-default placeholder DURING BUILD ONLY — runtime still requires the
+  // real BETTER_AUTH_SECRET (set it on the host or sessions are insecure).
+  secret:
+    process.env.BETTER_AUTH_SECRET ||
+    (process.env.NEXT_PHASE === "phase-production-build"
+      ? "build-time-placeholder-set-BETTER_AUTH_SECRET"
+      : undefined),
   baseURL:
     process.env.BETTER_AUTH_URL ||
     (process.env.VERCEL_PROJECT_PRODUCTION_URL
