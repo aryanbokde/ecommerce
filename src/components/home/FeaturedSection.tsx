@@ -2,18 +2,16 @@ import { Suspense } from "react";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { ProductCardSkeleton } from "@/components/shared/ProductCardSkeleton";
 import { SectionHeading } from "./SectionHeading";
+import { getFeaturedProducts } from "@/server/services/product.service";
 import type { Product } from "@/types";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-
+// Direct service call — a Server Component must NOT fetch its own API route
+// (deadlocks / a wrong NEXT_PUBLIC_APP_URL on the host returns nothing). JSON-
+// serialize so Prisma Decimals/Dates arrive as plain values for the client card.
 async function getFeatured(): Promise<Product[]> {
   try {
-    const res = await fetch(`${BASE_URL}/api/products/featured?limit=5`, {
-      next: { tags: ["products", "featured-products"], revalidate: 120 },
-    });
-    if (!res.ok) return [];
-    const json = await res.json();
-    return (json?.data ?? []) as Product[];
+    const products = await getFeaturedProducts(5);
+    return JSON.parse(JSON.stringify(products)) as Product[];
   } catch {
     return [];
   }
