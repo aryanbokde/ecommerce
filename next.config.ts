@@ -40,6 +40,16 @@ const nextConfig: NextConfig = {
   // doesn't hit that, so build with Turbopack on this machine.
   outputFileTracingRoot: path.resolve(__dirname),
 
+  // Prisma's client is generated to a CUSTOM path (src/generated/prisma) instead
+  // of node_modules/.prisma, so Next's file tracer doesn't automatically pull the
+  // platform query-engine binary (libquery_engine-*.so.node) into the serverless
+  // function. Without it, every DB query on Vercel throws
+  // PrismaClientInitializationError ("engine could not be found") and 500s the
+  // page. Force the whole generated dir (schema + engine) into every function.
+  outputFileTracingIncludes: {
+    "/**/*": ["./src/generated/prisma/**/*"],
+  },
+
   // Allowed remote image hosts for next/image optimization. Add your real
   // product-image CDN here; placehold.co is used by the seed/demo data.
   images: {
