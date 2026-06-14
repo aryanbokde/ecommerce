@@ -32,11 +32,13 @@ const serverSchema = z.object({
   BETTER_AUTH_SECRET: z.string().min(1, "BETTER_AUTH_SECRET is required"),
   // Canonical origin better-auth issues callbacks/cookies against.
   BETTER_AUTH_URL: z.string().url("BETTER_AUTH_URL must be a URL"),
-  // Razorpay server credentials (test keys are prefixed rzp_test_).
-  RAZORPAY_KEY_ID: z.string().min(1, "RAZORPAY_KEY_ID is required"),
-  RAZORPAY_KEY_SECRET: z.string().min(1, "RAZORPAY_KEY_SECRET is required"),
-  // Optional — only required once Razorpay webhooks are enabled. The webhook
-  // route guards this at runtime, so a deployment without webhooks still boots.
+  // Razorpay is an OPTIONAL payment integration — its client is instantiated
+  // lazily and every call guards for missing keys, so a deployment without
+  // Razorpay configured still builds and boots (payment attempts then fail
+  // gracefully). Keeping these optional also stops a key rotation that briefly
+  // clears the vars from breaking the build.
+  RAZORPAY_KEY_ID: z.string().optional(),
+  RAZORPAY_KEY_SECRET: z.string().optional(),
   RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
 });
 
@@ -44,9 +46,9 @@ const serverSchema = z.object({
 // their full static names so Next.js can replace them.
 const clientSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url("NEXT_PUBLIC_APP_URL must be a URL"),
-  NEXT_PUBLIC_RAZORPAY_KEY_ID: z
-    .string()
-    .min(1, "NEXT_PUBLIC_RAZORPAY_KEY_ID is required"),
+  // Optional — the browser checkout widget needs it, but its absence must not
+  // fail the build (Razorpay is an optional integration; see server schema).
+  NEXT_PUBLIC_RAZORPAY_KEY_ID: z.string().optional(),
   // Optional — empty until a Sentry project is wired up.
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional().default(""),
 });
