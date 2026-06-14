@@ -14,7 +14,7 @@ const isServer = typeof window === "undefined";
 const skip =
   process.env.SKIP_ENV_VALIDATION === "1" || process.env.NODE_ENV === "test";
 // `next build` collects route page-data by importing every route module — which
-// pulls in server modules  (razorpay, db, auth) and this validator. Server
+// pulls in server modules (razorpay, db, auth) and this validator. Server
 // secrets aren't needed to COMPILE (clients are instantiated lazily), so don't
 // fail the build when they're absent in the build environment; runtime cold
 // start still validates them strictly. Client (NEXT_PUBLIC_*) vars stay strict
