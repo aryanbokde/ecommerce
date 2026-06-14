@@ -153,6 +153,20 @@ export async function getCategoryAndDescendantIds(
   return result;
 }
 
+/**
+ * Active category tree pruned to branches that actually hold products: a node
+ * survives if it has its own products OR a surviving descendant does. Drives the
+ * grouped storefront filter sidebar (parent heading → child rows).
+ */
+export async function getNonEmptyCategoryTree(): Promise<CategoryNode[]> {
+  const tree = await getCategoryTree();
+  const prune = (nodes: CategoryNode[]): CategoryNode[] =>
+    nodes
+      .map((n) => ({ ...n, children: prune(n.children) }))
+      .filter((n) => n.productCount > 0 || n.children.length > 0);
+  return prune(tree);
+}
+
 /** Single category by slug, with attached product count. */
 export async function getCategoryBySlug(slug: string) {
   const category = await prisma.category.findUnique({
