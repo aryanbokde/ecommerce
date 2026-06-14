@@ -48,34 +48,42 @@ const consoleTransport = new winston.transports.Console({
   format: isDev ? prettyFormat : jsonFormat,
 });
 
-const errorFileTransport = new winston.transports.File({
-  filename: "logs/error.log",
-  level: "error",
-  format: jsonFormat,
-});
+// Serverless platforms (Vercel, AWS Lambda, Netlify) have a READ-ONLY filesystem
+// — only /tmp is writable. The file transports below mkdir a `logs/` dir at
+// construction, which throws ENOENT there and crashes every route. So on
+// serverless we log to the console only (the platform captures stdout/stderr).
+const isServerless =
+  !!process.env.VERCEL ||
+  !!process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  !!process.env.NETLIFY;
 
-const combinedFileTransport = new winston.transports.File({
-  filename: "logs/combined.log",
-  format: jsonFormat,
-});
+const transports: winston.transport[] = [consoleTransport];
 
-const dailyRotateTransport = new DailyRotateFile({
-  filename: "logs/app-%DATE%.log",
-  datePattern: "YYYY-MM-DD",
-  maxFiles: "14d",
-  maxSize: "20m",
-  format: jsonFormat,
-});
+if (!isServerless) {
+  transports.push(
+    new winston.transports.File({
+      filename: "logs/error.log",
+      level: "error",
+      format: jsonFormat,
+    }),
+    new winston.transports.File({
+      filename: "logs/combined.log",
+      format: jsonFormat,
+    }),
+    new DailyRotateFile({
+      filename: "logs/app-%DATE%.log",
+      datePattern: "YYYY-MM-DD",
+      maxFiles: "14d",
+      maxSize: "20m",
+      format: jsonFormat,
+    })
+  );
+}
 
 const logger = winston.createLogger({
   level: isDev ? "debug" : "info",
   levels,
-  transports: [
-    consoleTransport,
-    errorFileTransport,
-    combinedFileTransport,
-    dailyRotateTransport,
-  ],
+  transports,
 });
 
 export default logger;
