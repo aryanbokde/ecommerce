@@ -11,7 +11,10 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import prisma from "@/server/db";
 import { getProducts } from "@/server/services/product.service";
-import { getCategoryAndDescendantIds } from "@/server/services/category.service";
+import {
+  getCategoryAndDescendantIds,
+  getNonEmptyCategoryTree,
+} from "@/server/services/category.service";
 import { productQuerySchema } from "@/server/validators/product.schema";
 import type { Product, Category } from "@/types";
 
@@ -158,24 +161,11 @@ async function getProductsForCategory(
   }
 }
 
-// Flat list of categories (parents AND children) that actually have products —
-// for the filter sidebar. Products live on leaf/child categories, so filtering
-// only parents (which have 0 direct products) wrongly yields "No categories".
+// Pruned category tree (parent → children, products-bearing only) for the
+// grouped filter sidebar.
 async function getNonEmptyCategories(): Promise<Category[]> {
   try {
-    const rows = await prisma.category.findMany({
-      where: { isActive: true },
-      orderBy: { name: "asc" },
-      include: { _count: { select: { products: true } } },
-    });
-    return rows
-      .filter((c) => c._count.products > 0)
-      .map((c) => ({
-        id: c.id,
-        name: c.name,
-        slug: c.slug,
-        productCount: c._count.products,
-      })) as Category[];
+    return (await getNonEmptyCategoryTree()) as unknown as Category[];
   } catch {
     return [];
   }
@@ -320,7 +310,7 @@ export default async function ShopPage({
           {categories.map((category) => (
             <Link
               key={category.id}
-              href={`/products?categoryId=${category.id}`}
+              href={`/shop?category=${category.slug}`}
               className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md"
             >
               {/* Image or gradient placeholder */}

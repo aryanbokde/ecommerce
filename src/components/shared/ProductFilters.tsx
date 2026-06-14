@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectTrigger,
@@ -84,34 +84,51 @@ export function ProductFilters({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Categories (single-select via checkboxes — the API filters one) */}
+      {/* Categories — grouped (parent → children) with the active one highlighted.
+          Selecting a parent filters its whole subtree; clicking the active row
+          again clears it. */}
       <section>
         <h3 className="text-sm font-semibold text-foreground">Categories</h3>
-        <div className="mt-3 flex flex-col gap-2.5">
+        <div className="mt-3 flex flex-col gap-1">
           {categories.length === 0 ? (
             <p className="text-xs text-muted-foreground">No categories</p>
           ) : (
-            categories.map((c) => {
-              const cValue = categoryParam === "category" ? c.slug : c.id;
-              const checked = activeCategory === cValue;
+            categories.map((parent) => {
+              const kids = parent.children ?? [];
+              const subtotal =
+                (parent.productCount ?? 0) +
+                kids.reduce((s, k) => s + (k.productCount ?? 0), 0);
               return (
-                <label
-                  key={c.id}
-                  className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
-                >
-                  <Checkbox
-                    checked={checked}
-                    onCheckedChange={(value) =>
-                      setParams({ [categoryParam]: value ? cValue : null })
+                <div key={parent.id}>
+                  <CategoryRow
+                    name={parent.name}
+                    count={subtotal}
+                    value={categoryParam === "category" ? parent.slug : parent.id}
+                    active={activeCategory}
+                    bold
+                    onSelect={(v, isActive) =>
+                      setParams({ [categoryParam]: isActive ? null : v })
                     }
                   />
-                  <span className="flex-1">{c.name}</span>
-                  {c.productCount != null && (
-                    <span className="text-xs text-muted-foreground">
-                      {c.productCount}
-                    </span>
+                  {kids.length > 0 && (
+                    <div className="ml-2 mt-0.5 flex flex-col gap-0.5 border-l border-border pl-2">
+                      {kids.map((child) => (
+                        <CategoryRow
+                          key={child.id}
+                          name={child.name}
+                          count={child.productCount ?? 0}
+                          value={
+                            categoryParam === "category" ? child.slug : child.id
+                          }
+                          active={activeCategory}
+                          onSelect={(v, isActive) =>
+                            setParams({ [categoryParam]: isActive ? null : v })
+                          }
+                        />
+                      ))}
+                    </div>
                   )}
-                </label>
+                </div>
               );
             })
           )}
@@ -196,6 +213,44 @@ export function ProductFilters({
         </Button>
       )}
     </div>
+  );
+}
+
+// One clickable category row (parent or child). Highlights when it's the
+// active filter; clicking the active row again clears the filter.
+function CategoryRow({
+  name,
+  count,
+  value,
+  active,
+  bold,
+  onSelect,
+}: {
+  name: string;
+  count: number;
+  value: string;
+  active?: string;
+  bold?: boolean;
+  onSelect: (value: string, isActive: boolean) => void;
+}) {
+  const isActive = active === value;
+  return (
+    <button
+      type="button"
+      aria-pressed={isActive}
+      onClick={() => onSelect(value, isActive)}
+      className={cn(
+        "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+        isActive
+          ? "bg-primary/10 font-medium text-primary"
+          : bold
+            ? "font-medium text-foreground hover:bg-muted"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+      )}
+    >
+      <span className="flex-1 truncate text-left">{name}</span>
+      <span className="text-xs tabular-nums opacity-70">{count}</span>
+    </button>
   );
 }
 

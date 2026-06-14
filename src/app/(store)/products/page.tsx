@@ -10,7 +10,7 @@ import {
 } from "@/components/shared/ProductFilters";
 import type { Product, Category } from "@/types";
 import {
-  getCategoryTree,
+  getNonEmptyCategoryTree,
   getCategoryAndDescendantIds,
 } from "@/server/services/category.service";
 import { getProducts } from "@/server/services/product.service";
@@ -85,31 +85,13 @@ async function fetchProducts(filters: Record<string, string>) {
 
 // Categories come straight from the service (a Server Component must not fetch
 // its own API route — that can deadlock and intermittently yields an empty
-// sidebar). getCategoryTree returns plain, serializable nodes with counts.
+// sidebar). Pruned tree → grouped sidebar (parent heading → child rows).
 async function fetchCategories(): Promise<Category[]> {
   try {
-    return (await getCategoryTree()) as unknown as Category[];
+    return (await getNonEmptyCategoryTree()) as unknown as Category[];
   } catch {
     return [];
   }
-}
-
-/**
- * Flatten the category tree to the categories the sidebar can actually filter
- * by — i.e. those with at least one product of their own. Empty parents (e.g.
- * "Electronics", whose products live under "Smartphones"/"Laptops") are dropped
- * so the filter never offers a category that returns zero results.
- */
-function flattenNonEmpty(tree: Category[]): Category[] {
-  const out: Category[] = [];
-  const walk = (nodes: Category[]) => {
-    for (const node of nodes) {
-      if ((node.productCount ?? 0) > 0) out.push(node);
-      if (node.children?.length) walk(node.children);
-    }
-  };
-  walk(tree);
-  return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export default async function ProductsPage({
@@ -120,11 +102,10 @@ export default async function ProductsPage({
   const sp = await searchParams;
   const filters = readFilters(sp);
 
-  const [{ products, total, page, totalPages }, categoryTree] = await Promise.all([
+  const [{ products, total, page, totalPages }, categories] = await Promise.all([
     fetchProducts(filters),
     fetchCategories(),
   ]);
-  const categories = flattenNonEmpty(categoryTree);
 
   return (
     <>
