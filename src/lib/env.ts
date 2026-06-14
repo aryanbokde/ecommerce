@@ -13,6 +13,13 @@ import { z } from "zod";
 const isServer = typeof window === "undefined";
 const skip =
   process.env.SKIP_ENV_VALIDATION === "1" || process.env.NODE_ENV === "test";
+// `next build` collects route page-data by importing every route module — which
+// pulls in server modules (razorpay, db, auth) and this validator. Server
+// secrets aren't needed to COMPILE (clients are instantiated lazily), so don't
+// fail the build when they're absent in the build environment; runtime cold
+// start still validates them strictly. Client (NEXT_PUBLIC_*) vars stay strict
+// here because they're inlined at build time.
+const isBuild = process.env.NEXT_PHASE === "phase-production-build";
 
 // Server-only — never sent to the browser.
 const serverSchema = z.object({
@@ -53,13 +60,14 @@ const clientInput = {
 function validate<S extends z.ZodObject<z.ZodRawShape>>(
   schema: S,
   input: unknown,
-  label: string
+  label: string,
+  lenient: boolean
 ): z.infer<S> {
   const result = schema.safeParse(input);
   if (result.success) return result.data;
 
-  if (skip) {
-    // Don't block test runs / opt-out builds; surface only what's present.
+  if (lenient) {
+    // Don't block test runs / opt-out / build-phase; surface only what's present.
     return schema.partial().parse(input) as z.infer<S>;
   }
 
@@ -72,12 +80,13 @@ function validate<S extends z.ZodObject<z.ZodRawShape>>(
   );
 }
 
-// Validate client vars everywhere (they're inlined); server vars only on the
-// server (or under skip, so server unit tests can read them from process.env).
-const clientEnv = validate(clientSchema, clientInput, "client");
+// Validate client vars everywhere (they're inlined → always strict at build).
+// Server vars only on the server; lenient under skip OR during `next build`, so
+// the build never needs runtime secrets (runtime cold start still validates).
+const clientEnv = validate(clientSchema, clientInput, "client", skip);
 const serverEnv =
   isServer || skip
-    ? validate(serverSchema, process.env, "server")
+    ? validate(serverSchema, process.env, "server", skip || isBuild)
     : ({} as z.infer<typeof serverSchema>);
 
 export const env = { ...serverEnv, ...clientEnv };
