@@ -6,9 +6,14 @@ const { prismaMock } = vi.hoisted(() => ({
     product: { findUnique: vi.fn() },
     cart: { upsert: vi.fn() },
     cartItem: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
+    category: { findMany: vi.fn() },
   },
 }));
 vi.mock("@/server/db", () => ({ default: prismaMock }));
+// GET /api/cart enriches items with the effective tax rate (loadTaxContext).
+vi.mock("@/server/services/settings.service", () => ({
+  getStoreConfig: vi.fn().mockResolvedValue({ taxEnabled: true, defaultTaxRate: 18 }),
+}));
 
 import { getServerSession } from "@/lib/auth";
 import { POST as addItem } from "@/app/api/cart/items/route";
@@ -23,6 +28,8 @@ const PRODUCT = {
   images: [],
   stock: 10,
   isActive: true,
+  taxRate: null,
+  categoryId: null,
 };
 
 beforeEach(() => {
@@ -43,6 +50,7 @@ beforeEach(() => {
   prismaMock.cart.upsert.mockImplementation(async (args: { include?: unknown }) =>
     args.include ? { id: "cart1", userId: "u1", items } : { id: "cart1" }
   );
+  prismaMock.category.findMany.mockResolvedValue([]); // no category rates → default
   prismaMock.cartItem.findUnique.mockResolvedValue(null); // nothing yet
   prismaMock.cartItem.create.mockImplementation(
     async (args: { data: { productId: string; quantity: number } }) => {

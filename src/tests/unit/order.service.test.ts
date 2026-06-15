@@ -15,6 +15,7 @@ const { prismaMock } = vi.hoisted(() => ({
     },
     orderItem: { findMany: vi.fn() },
     product: { findUnique: vi.fn(), updateMany: vi.fn(), update: vi.fn() },
+    category: { findMany: vi.fn() },
     stockMovement: { create: vi.fn() },
     cartItem: { deleteMany: vi.fn() },
     $transaction: vi.fn(),
@@ -24,6 +25,10 @@ const { prismaMock } = vi.hoisted(() => ({
 vi.mock("@/server/db", () => ({ default: prismaMock }));
 // Audit logging is fire-and-forget — stub it so it doesn't touch the DB mock.
 vi.mock("@/server/services/audit-log.service", () => ({ logAudit: vi.fn() }));
+// Tax context: enabled, default 18%. createOrder reads it via loadTaxContext.
+vi.mock("@/server/services/settings.service", () => ({
+  getStoreConfig: vi.fn().mockResolvedValue({ taxEnabled: true, defaultTaxRate: 18 }),
+}));
 
 import {
   createOrder,
@@ -31,6 +36,7 @@ import {
   getOrderById,
   getAllOrders,
 } from "@/server/services/order.service";
+import { getStoreConfig } from "@/server/services/settings.service";
 
 const orderData: CreateOrderInput = {
   addressId: "a1",
@@ -50,6 +56,8 @@ function seedCheckout() {
           price: new Prisma.Decimal("10"),
           isActive: true,
           images: ["shirt.jpg"],
+          taxRate: null,
+          categoryId: null,
         },
       },
     ],
@@ -76,6 +84,12 @@ function seedCheckout() {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  prismaMock.category.findMany.mockResolvedValue([]); // no category rates → default
+  // resetAllMocks wipes the module-mock impl too — restore the tax context.
+  vi.mocked(getStoreConfig).mockResolvedValue({
+    taxEnabled: true,
+    defaultTaxRate: 18,
+  } as Awaited<ReturnType<typeof getStoreConfig>>);
 });
 
 describe("order.service — createOrder", () => {

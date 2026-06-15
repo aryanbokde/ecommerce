@@ -41,8 +41,8 @@ describe("category.service — reads", () => {
 
   it("getCategoryTree nests children under their parent", async () => {
     prismaMock.category.findMany.mockResolvedValue([
-      { id: "root", parentId: null },
-      { id: "child", parentId: "root" },
+      { id: "root", parentId: null, _count: { products: 0 } },
+      { id: "child", parentId: "root", _count: { products: 0 } },
     ]);
     const tree = await getCategoryTree();
     expect(tree).toHaveLength(1);

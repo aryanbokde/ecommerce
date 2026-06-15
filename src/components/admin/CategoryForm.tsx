@@ -43,6 +43,8 @@ export interface FlatCategory {
   description: string | null;
   image: string | null;
   parentId: string | null;
+  // Decimal serialises to a string over the wire; null = inherit.
+  taxRate: number | string | null;
   isActive: boolean;
   sortOrder: number;
   productCount: number;
@@ -63,6 +65,14 @@ const categoryFormSchema = z.object({
   description: z.string().max(20_000),
   parentId: z.string(),
   image: z.string().trim(),
+  // Tax slab percent: blank = inherit (parent / default); else 0–100.
+  taxRate: z
+    .string()
+    .trim()
+    .refine(
+      (v) => v === "" || (Number(v) >= 0 && Number(v) <= 100),
+      "Enter 0–100, or leave blank to inherit"
+    ),
   isActive: z.boolean(),
   sortOrder: z
     .string()
@@ -138,6 +148,7 @@ export function CategoryForm({
       description: initialData?.description ?? "",
       parentId: initialData?.parentId ?? "",
       image: initialData?.image ?? "",
+      taxRate: initialData?.taxRate != null ? String(initialData.taxRate) : "",
       isActive: initialData?.isActive ?? true,
       sortOrder:
         initialData != null ? String(initialData.sortOrder) : "0",
@@ -156,6 +167,9 @@ export function CategoryForm({
             ...(values.description ? { description: values.description } : {}),
             ...(values.parentId ? { parentId: values.parentId } : {}),
             ...(values.image ? { image: values.image } : {}),
+            ...(values.taxRate.trim() !== ""
+              ? { taxRate: Number(values.taxRate) }
+              : {}),
           }
         : {
             name: values.name,
@@ -165,6 +179,8 @@ export function CategoryForm({
             description: values.description || null,
             parentId: values.parentId || null,
             image: values.image || null,
+            taxRate:
+              values.taxRate.trim() === "" ? null : Number(values.taxRate),
           };
 
     try {
@@ -350,6 +366,29 @@ export function CategoryForm({
                     <FormControl>
                       <Input type="number" min="0" step="1" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="taxRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tax rate (%)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        placeholder="Inherit"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Blank = inherit parent / default. 0 = tax-free.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

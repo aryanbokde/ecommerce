@@ -8,6 +8,7 @@ const { prismaMock } = vi.hoisted(() => ({
     address: { findUnique: vi.fn() },
     order: { create: vi.fn() },
     product: { findUnique: vi.fn(), updateMany: vi.fn() },
+    category: { findMany: vi.fn() },
     stockMovement: { create: vi.fn() },
     cartItem: { deleteMany: vi.fn() },
     $transaction: vi.fn(),
@@ -15,6 +16,9 @@ const { prismaMock } = vi.hoisted(() => ({
 }));
 vi.mock("@/server/db", () => ({ default: prismaMock }));
 vi.mock("@/server/services/audit-log.service", () => ({ logAudit: vi.fn() }));
+vi.mock("@/server/services/settings.service", () => ({
+  getStoreConfig: vi.fn().mockResolvedValue({ taxEnabled: true, defaultTaxRate: 18 }),
+}));
 
 import { getServerSession } from "@/lib/auth";
 import { POST } from "@/app/api/orders/route";
@@ -37,6 +41,8 @@ beforeEach(() => {
           price: new Prisma.Decimal("10"),
           isActive: true,
           images: ["shirt.jpg"],
+          taxRate: null,
+          categoryId: null,
         },
       },
     ],
@@ -46,6 +52,7 @@ beforeEach(() => {
   prismaMock.product.updateMany.mockResolvedValue({ count: 1 });
   prismaMock.stockMovement.create.mockResolvedValue({ id: "m1" });
   prismaMock.cartItem.deleteMany.mockResolvedValue({ count: 1 });
+  prismaMock.category.findMany.mockResolvedValue([]); // no category rates → default
   prismaMock.$transaction.mockImplementation(
     async (cb: (tx: typeof prismaMock) => unknown) => cb(prismaMock)
   );

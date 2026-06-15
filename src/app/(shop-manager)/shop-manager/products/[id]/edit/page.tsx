@@ -40,6 +40,7 @@ export default async function ManagerEditProductPage({ params }: PageProps) {
     barcode: product.barcode ?? null,
     stock: product.stock,
     lowStockAt: product.lowStockAt,
+    taxRate: product.taxRate != null ? Number(product.taxRate) : null,
     categoryId: product.categoryId ?? null,
     images,
     tags,

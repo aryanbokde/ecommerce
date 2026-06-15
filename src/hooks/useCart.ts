@@ -14,6 +14,9 @@ export interface CartProduct {
   images: unknown;
   stock: number;
   isActive: boolean;
+  /** Effective tax percent from the server (e.g. "18.00"). Absent on the guest
+   *  cart → the preview falls back to the default rate. */
+  taxRate?: string | number | null;
 }
 
 export interface CartItem {

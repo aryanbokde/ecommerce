@@ -39,7 +39,18 @@ const SECTIONS: { group: Group; title: string; fields: Field[] }[] = [
     title: "Commerce",
     fields: [
       { key: "currency", label: "Currency", type: "input", hint: "ISO code, e.g. INR" },
-      { key: "taxPercent", label: "Tax %", type: "input" },
+      {
+        key: "taxEnabled",
+        label: "Charge tax",
+        type: "toggle",
+        hint: "Master switch — when off, no tax is added to any order.",
+      },
+      {
+        key: "defaultTaxRate",
+        label: "Default tax %",
+        type: "input",
+        hint: "Fallback when a product/category has no rate. Per-product and per-category rates override this.",
+      },
       { key: "freeShippingThreshold", label: "Free shipping over (₹)", type: "input" },
       { key: "shippingFee", label: "Shipping fee (₹)", type: "input" },
     ],
@@ -98,6 +109,8 @@ const FIELD_DEFAULTS: Record<string, string> = {
   cancellationsEnabled: "true",
   returnsEnabled: "true",
   returnWindowDays: "7",
+  taxEnabled: "true",
+  defaultTaxRate: "18",
 };
 
 function emptyForm(): Record<string, string> {

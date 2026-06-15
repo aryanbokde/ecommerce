@@ -11,11 +11,11 @@ import { PaymentStep } from "@/components/checkout/PaymentStep";
 import { ReviewStep } from "@/components/checkout/ReviewStep";
 import { useCheckout } from "@/hooks/useCheckout";
 import { type CartItem } from "@/hooks/useCart";
+import { previewTax } from "@/lib/tax-preview";
 import { notifyWarning } from "@/lib/notify";
 
 const FREE_SHIPPING_THRESHOLD = 999;
 const SHIPPING_FEE = 99;
-const TAX_RATE = 0.18;
 
 const CHECKOUT_CRUMB = [
   { label: "Home", href: "/" },
@@ -41,7 +41,7 @@ function computeTotals(items: CartItem[]) {
     0
   );
   const shipping = subtotal > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
-  const tax = subtotal * TAX_RATE;
+  const tax = previewTax(items); // per-line, matches the server order tax
   return { subtotal, shipping, tax, total: subtotal + shipping + tax };
 }
 
@@ -181,7 +181,7 @@ function OrderSummary({ items }: { items: CartItem[] }) {
           </dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-muted-foreground">Tax (18%)</dt>
+          <dt className="text-muted-foreground">Tax</dt>
           <dd className="text-foreground tabular-nums">{formatPrice(tax)}</dd>
         </div>
       </dl>

@@ -14,7 +14,9 @@ export interface StoreConfig {
   storePhone: string;
   supportEmail: string;
   currency: string;
-  taxPercent: number;
+  // Tax: global on/off + fallback percent when no product/category rate applies.
+  taxEnabled: boolean;
+  defaultTaxRate: number;
   socialLinks: { facebook?: string; instagram?: string; twitter?: string };
   // Order policy
   cancellationsEnabled: boolean;
@@ -29,7 +31,8 @@ const DEFAULTS: StoreConfig = {
   storePhone: "",
   supportEmail: process.env.EMAIL_SUPPORT ?? "support@myshop.local",
   currency: "INR",
-  taxPercent: 18,
+  taxEnabled: true,
+  defaultTaxRate: 18,
   socialLinks: {},
   cancellationsEnabled: true,
   returnsEnabled: true,
@@ -116,11 +119,11 @@ export async function getStoreConfig(): Promise<StoreConfig> {
   const rows = await prisma.storeSetting.findMany();
   const map = new Map(rows.map((r) => [r.key, r.value]));
 
-  const taxRaw = map.get("taxPercent");
-  const taxPercent =
-    taxRaw !== undefined && !Number.isNaN(Number(taxRaw))
-      ? Number(taxRaw)
-      : DEFAULTS.taxPercent;
+  const rateRaw = map.get("defaultTaxRate");
+  const defaultTaxRate =
+    rateRaw !== undefined && Number.isFinite(Number(rateRaw))
+      ? Math.max(0, Number(rateRaw))
+      : DEFAULTS.defaultTaxRate;
 
   const windowRaw = map.get("returnWindowDays");
   const returnWindowDays =
@@ -139,7 +142,8 @@ export async function getStoreConfig(): Promise<StoreConfig> {
     storePhone: map.get("storePhone") ?? DEFAULTS.storePhone,
     supportEmail: map.get("supportEmail") ?? DEFAULTS.supportEmail,
     currency: map.get("currency") ?? DEFAULTS.currency,
-    taxPercent,
+    taxEnabled: boolSetting("taxEnabled", DEFAULTS.taxEnabled),
+    defaultTaxRate,
     socialLinks: {
       ...(map.get("socialFacebook") ? { facebook: map.get("socialFacebook") } : {}),
       ...(map.get("socialInstagram") ? { instagram: map.get("socialInstagram") } : {}),

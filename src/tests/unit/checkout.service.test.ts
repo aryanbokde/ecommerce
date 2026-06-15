@@ -12,11 +12,19 @@ vi.mock("razorpay", () => ({
   },
 }));
 
-// Prisma singleton mock — only cart.findUnique is needed for quoteCheckout.
+// Prisma singleton mock — cart.findUnique + category.findMany (tax context).
 const { prismaMock } = vi.hoisted(() => ({
-  prismaMock: { cart: { findUnique: vi.fn() } },
+  prismaMock: {
+    cart: { findUnique: vi.fn() },
+    category: { findMany: vi.fn() },
+  },
 }));
 vi.mock("@/server/db", () => ({ default: prismaMock }));
+
+// Tax context: default 18%, enabled. quoteCheckout reads this via loadTaxContext.
+vi.mock("@/server/services/settings.service", () => ({
+  getStoreConfig: vi.fn().mockResolvedValue({ taxEnabled: true, defaultTaxRate: 18 }),
+}));
 
 import { createRazorpayOrder, verifyPaymentSignature } from "@/lib/razorpay";
 import { quoteCheckout } from "@/server/services/order.service";
@@ -26,6 +34,7 @@ const SECRET = process.env.RAZORPAY_KEY_SECRET as string; // set in setup.ts
 
 beforeEach(() => {
   vi.clearAllMocks();
+  prismaMock.category.findMany.mockResolvedValue([]); // no category rates → default
 });
 
 describe("createRazorpayOrder", () => {
@@ -91,6 +100,8 @@ describe("order total calculation (quoteCheckout)", () => {
           stock: 999,
           name: "Item",
           price: new Prisma.Decimal(it.price),
+          taxRate: null, // inherit → default 18%
+          categoryId: null,
         },
       })),
     });

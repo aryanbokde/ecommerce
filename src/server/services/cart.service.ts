@@ -18,6 +18,8 @@ const cartItemProduct = {
     images: true,
     stock: true,
     isActive: true,
+    taxRate: true, // raw override (null = inherit); GET enriches to effective
+    categoryId: true,
   },
 } as const;
 

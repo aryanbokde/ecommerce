@@ -13,12 +13,16 @@ const slug = z
   .max(255)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be kebab-case");
 
+// Tax slab percent (0–100). null = inherit from the parent category / default.
+const taxRate = z.number().min(0).max(100).nullable();
+
 export const createCategorySchema = z.object({
   name,
   slug: slug.optional(),
   parentId: z.string().trim().min(1).optional(),
   description: z.string().max(20_000).optional(),
   image: z.string().trim().min(1).optional(),
+  taxRate: taxRate.optional(),
   isActive: z.boolean().default(true),
   sortOrder: z.number().int().min(0).default(0),
 });
@@ -30,6 +34,7 @@ export const updateCategorySchema = z
     parentId: z.string().trim().min(1).nullable(),
     description: z.string().max(20_000).nullable(),
     image: z.string().trim().min(1).nullable(),
+    taxRate,
     isActive: z.boolean(),
     sortOrder: z.number().int().min(0),
   })

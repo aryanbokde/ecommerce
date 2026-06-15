@@ -31,9 +31,11 @@ export const STORE_SETTINGS: SettingSeed[] = [
   { group: "general", key: "storeAddress", value: "Bengaluru, Karnataka, India" },
   { group: "general", key: "storePhone", value: "" },
   { group: "general", key: "supportEmail", value: "support@myshop.local" },
-  // commerce — mirrors the constants in order.service.ts (18% tax, ₹99 fee, free over ₹999)
+  // commerce — mirrors the constants in order.service.ts (₹99 fee, free over ₹999)
   { group: "commerce", key: "currency", value: "INR" },
-  { group: "commerce", key: "taxPercent", value: "18" },
+  // Tax: global on/off + fallback rate (percent) when no product/category rate.
+  { group: "commerce", key: "taxEnabled", value: "true" },
+  { group: "commerce", key: "defaultTaxRate", value: "18" },
   { group: "commerce", key: "freeShippingThreshold", value: "999" },
   { group: "commerce", key: "shippingFee", value: "99" },
   { group: "commerce", key: "cancellationsEnabled", value: "true" },
@@ -190,6 +192,9 @@ export const EMAIL_TEMPLATES: TemplateSeed[] = [
 export async function seedSettings(
   prisma: PrismaClient
 ): Promise<{ settings: number; templates: number }> {
+  // Drop the legacy flat-tax key (renamed to defaultTaxRate + taxEnabled).
+  await prisma.storeSetting.deleteMany({ where: { key: "taxPercent" } });
+
   for (const s of STORE_SETTINGS) {
     await prisma.storeSetting.upsert({
       where: { key: s.key },

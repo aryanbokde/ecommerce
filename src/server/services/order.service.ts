@@ -6,6 +6,12 @@ import prisma from "@/server/db";
 import { AppError, ErrorCode } from "@/lib/api-error";
 import { logAudit } from "@/server/services/audit-log.service";
 import { recordSale, recordReturn } from "@/server/services/inventory.service";
+import { loadTaxContext } from "@/server/services/tax.service";
+import {
+  computeLineTaxes,
+  type TaxContext,
+  type TaxLine,
+} from "@/lib/tax";
 import {
   sendEmail,
   orderDeliveredEmail,
@@ -23,23 +29,28 @@ import type {
 // nothing. Prices/names are snapshotted onto OrderItem so later product edits
 // never rewrite historical orders.
 
-const TAX_RATE = new Prisma.Decimal("0.18"); // 18%
 const SHIPPING_FEE = new Prisma.Decimal(99);
 const FREE_SHIPPING_THRESHOLD = new Prisma.Decimal(999);
 
 /**
- * Single source of truth for order money: tax (18%), shipping (free over ₹999,
- * else ₹99) and grand total. Used by both createOrder (persisted total) and
- * quoteCheckout (Razorpay charge amount) so the two can never diverge.
+ * Single source of truth for order money: per-line tax (product override →
+ * category chain → default, or 0 when tax is off), shipping (free over ₹999 else
+ * ₹99) and grand total. `perLine` carries each line's rate + amount so createOrder
+ * can snapshot them onto OrderItem. Used by createOrder AND quoteCheckout so the
+ * charged amount and persisted total can never diverge.
  */
-function computeTotals(subtotal: Prisma.Decimal) {
-  const tax = subtotal.mul(TAX_RATE).toDecimalPlaces(2);
+function computeTotals(
+  subtotal: Prisma.Decimal,
+  lines: TaxLine[],
+  ctx: TaxContext
+) {
+  const { tax, perLine } = computeLineTaxes(lines, ctx);
   const shipping = subtotal.gt(FREE_SHIPPING_THRESHOLD)
     ? new Prisma.Decimal(0)
     : SHIPPING_FEE;
   const discount = new Prisma.Decimal(0);
   const total = subtotal.add(tax).add(shipping).sub(discount);
-  return { tax, shipping, discount, total };
+  return { tax, shipping, discount, total, perLine };
 }
 
 const orderInclude = {
@@ -109,9 +120,12 @@ export async function createOrder(
     throw new AppError("Address not found", ErrorCode.NOT_FOUND, 404);
   }
 
-  // 3. Snapshot items + compute money (Decimal-safe).
+  // 3. Snapshot items + compute money (Decimal-safe). Lines feed the per-line
+  //    tax engine; itemsToCreate stays index-aligned with them.
+  const taxCtx = await loadTaxContext();
   let subtotal = new Prisma.Decimal(0);
   const itemsToCreate: Prisma.OrderItemCreateWithoutOrderInput[] = [];
+  const lines: TaxLine[] = [];
   for (const item of cart.items) {
     const product = item.product;
     if (!product.isActive) {
@@ -123,6 +137,11 @@ export async function createOrder(
     }
     const lineTotal = product.price.mul(item.quantity);
     subtotal = subtotal.add(lineTotal);
+    lines.push({
+      lineTotal,
+      productRate: product.taxRate,
+      categoryId: product.categoryId,
+    });
     itemsToCreate.push({
       product: { connect: { id: product.id } },
       name: product.name,
@@ -133,7 +152,16 @@ export async function createOrder(
     });
   }
 
-  const { tax, shipping, discount, total } = computeTotals(subtotal);
+  const { tax, shipping, discount, total, perLine } = computeTotals(
+    subtotal,
+    lines,
+    taxCtx
+  );
+  // Snapshot each line's resolved rate + tax onto the OrderItem (GST breakup).
+  perLine.forEach((pl, i) => {
+    itemsToCreate[i].taxRate = pl.rate;
+    itemsToCreate[i].taxAmount = pl.amount;
+  });
 
   // 4. Transaction with order-number retry on the rare collision.
   let order:
@@ -235,8 +263,10 @@ export async function quoteCheckout(userId: string) {
     throw new AppError("Your cart is empty", ErrorCode.VALIDATION_ERROR, 400);
   }
 
+  const taxCtx = await loadTaxContext();
   let subtotal = new Prisma.Decimal(0);
   let itemCount = 0;
+  const lines: TaxLine[] = [];
   for (const { product, quantity } of cart.items) {
     if (!product.isActive) {
       throw new AppError(
@@ -252,11 +282,21 @@ export async function quoteCheckout(userId: string) {
         400
       );
     }
-    subtotal = subtotal.add(product.price.mul(quantity));
+    const lineTotal = product.price.mul(quantity);
+    subtotal = subtotal.add(lineTotal);
+    lines.push({
+      lineTotal,
+      productRate: product.taxRate,
+      categoryId: product.categoryId,
+    });
     itemCount += quantity;
   }
 
-  const { tax, shipping, discount, total } = computeTotals(subtotal);
+  const { tax, shipping, discount, total } = computeTotals(
+    subtotal,
+    lines,
+    taxCtx
+  );
   return {
     subtotal: subtotal.toFixed(2),
     tax: tax.toFixed(2),

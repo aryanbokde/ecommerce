@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { useCart, type CartItem } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
+import { previewTax } from "@/lib/tax-preview";
 import { CartItemRow } from "@/components/store/CartItemRow";
 import { CartSummary } from "@/components/store/CartSummary";
 import { CartRecommendations } from "@/components/store/CartRecommendations";
@@ -37,7 +38,6 @@ const CART_CRUMB = [{ label: "Home", href: "/" }, { label: "Cart" }];
 
 const FREE_SHIPPING_THRESHOLD = 999;
 const SHIPPING_FEE = 99;
-const TAX_RATE = 0.18;
 
 function formatPrice(value: number): string {
   return `₹${value.toLocaleString("en-IN", {
@@ -102,7 +102,7 @@ export default function CartPage() {
 
   const subtotal = total;
   const shipping = subtotal > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
-  const tax = subtotal * TAX_RATE;
+  const tax = previewTax(items); // per-line, matches the server order tax
   const grandTotal = subtotal + shipping + tax;
   const freeShipPct = Math.min(
     100,

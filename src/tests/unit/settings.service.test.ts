@@ -32,7 +32,8 @@ describe("settings.service", () => {
     expect(cfg).toMatchObject({
       storeName: "MyShop",
       currency: "INR",
-      taxPercent: 18,
+      taxEnabled: true,
+      defaultTaxRate: 18,
       socialLinks: {},
     });
     expect(cfg.supportEmail).toContain("@");
@@ -41,14 +42,16 @@ describe("settings.service", () => {
   it("getStoreConfig reads stored values + parses social keys", async () => {
     prismaMock.storeSetting.findMany.mockResolvedValue([
       { key: "storeName", value: "Acme Store" },
-      { key: "taxPercent", value: "12" },
+      { key: "defaultTaxRate", value: "12" },
+      { key: "taxEnabled", value: "false" },
       { key: "socialInstagram", value: "https://instagram.com/acme" },
     ]);
 
     const cfg = await getStoreConfig();
 
     expect(cfg.storeName).toBe("Acme Store");
-    expect(cfg.taxPercent).toBe(12);
+    expect(cfg.defaultTaxRate).toBe(12);
+    expect(cfg.taxEnabled).toBe(false);
     expect(cfg.socialLinks).toEqual({ instagram: "https://instagram.com/acme" });
   });
 

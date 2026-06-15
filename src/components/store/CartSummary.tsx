@@ -102,7 +102,7 @@ export function CartSummary({
           </dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-muted-foreground">Tax (18%)</dt>
+          <dt className="text-muted-foreground">Tax</dt>
           <dd className="font-medium text-foreground tabular-nums">
             {inr(tax)}
           </dd>

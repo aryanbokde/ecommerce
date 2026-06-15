@@ -20,6 +20,7 @@ import { getOrderById } from "@/server/services/order.service";
 import { OrderStatusTimeline } from "@/components/orders/OrderStatusTimeline";
 import { CustomerReturn } from "@/components/orders/CustomerReturn";
 import { getStoreConfig } from "@/server/services/settings.service";
+import { groupTaxByRate } from "@/lib/tax-breakup";
 
 // Outside the component so the time read isn't flagged as impure-in-render.
 function withinReturnWindow(deliveredAt: Date | null, days: number): boolean {
@@ -246,6 +247,15 @@ export default async function OrderDetailPage({
                   {formatPrice(order.tax)}
                 </dd>
               </div>
+              {groupTaxByRate(order.items).map((r) => (
+                <div
+                  key={r.rate}
+                  className="flex justify-between pl-3 text-xs text-muted-foreground"
+                >
+                  <dt>GST {r.rate}%</dt>
+                  <dd className="tabular-nums">{formatPrice(r.amount)}</dd>
+                </div>
+              ))}
               {Number(order.discount) > 0 && (
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Discount</dt>

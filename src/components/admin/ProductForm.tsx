@@ -65,6 +65,14 @@ const nonNegInt = z
     (v) => Number.isInteger(Number(v)) && Number(v) >= 0,
     "Enter a whole number >= 0"
   );
+// Tax override percent: blank = inherit; otherwise 0–100.
+const optionalPercent = z
+  .string()
+  .trim()
+  .refine(
+    (v) => v === "" || (Number(v) >= 0 && Number(v) <= 100),
+    "Enter 0–100, or leave blank to inherit"
+  );
 
 const productFormSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(255),
@@ -84,6 +92,7 @@ const productFormSchema = z.object({
   barcode: z.string().trim().max(100),
   stock: nonNegInt,
   lowStockAt: nonNegInt,
+  taxRate: optionalPercent,
   categoryId: z.string(),
   tags: z.array(z.string()),
   images: z.array(z.string()),
@@ -105,6 +114,7 @@ export interface ProductFormInitialData {
   barcode: string | null;
   stock: number;
   lowStockAt: number;
+  taxRate: number | null;
   categoryId: string | null;
   images: string[];
   tags: string[];
@@ -205,6 +215,7 @@ export function ProductForm({
       barcode: initialData?.barcode ?? "",
       stock: initialData != null ? String(initialData.stock) : "0",
       lowStockAt: initialData != null ? String(initialData.lowStockAt) : "5",
+      taxRate: initialData?.taxRate != null ? String(initialData.taxRate) : "",
       categoryId: initialData?.categoryId ?? "",
       tags: initialData?.tags ?? [],
       images: initialData?.images ?? [],
@@ -252,6 +263,9 @@ export function ProductForm({
             ...(num(values.costPrice) != null
               ? { costPrice: num(values.costPrice) }
               : {}),
+            ...(num(values.taxRate) != null
+              ? { taxRate: num(values.taxRate) }
+              : {}),
             ...(values.sku ? { sku: values.sku } : {}),
             ...(values.barcode ? { barcode: values.barcode } : {}),
             ...(values.categoryId ? { categoryId: values.categoryId } : {}),
@@ -264,6 +278,7 @@ export function ProductForm({
             description: values.description || null,
             comparePrice: num(values.comparePrice) ?? null,
             costPrice: num(values.costPrice) ?? null,
+            taxRate: num(values.taxRate) ?? null,
             sku: values.sku || null,
             barcode: values.barcode || null,
             categoryId: values.categoryId || null,
@@ -548,6 +563,30 @@ export function ProductForm({
                       <FormControl>
                         <Input type="number" min="0" step="1" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="taxRate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tax rate (%)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          placeholder="Inherit category"
+                          {...field}
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        Blank = inherit the category&apos;s rate (or the store
+                        default). 0 = tax-free.
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}

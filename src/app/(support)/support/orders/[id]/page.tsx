@@ -20,6 +20,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { groupTaxByRate } from "@/lib/tax-breakup";
 import prisma from "@/server/db";
 import { getOrderById } from "@/server/services/order.service";
 import { OrderStatusTimeline } from "@/components/orders/OrderStatusTimeline";
@@ -323,6 +324,15 @@ export default async function SupportOrderDetailPage({
                   <dt className="text-muted-foreground">Tax</dt>
                   <dd className="tabular-nums text-foreground">{inr(order.tax)}</dd>
                 </div>
+                {groupTaxByRate(order.items).map((r) => (
+                  <div
+                    key={r.rate}
+                    className="flex justify-between pl-3 text-xs text-muted-foreground"
+                  >
+                    <dt>GST {r.rate}%</dt>
+                    <dd className="tabular-nums">{inr(r.amount)}</dd>
+                  </div>
+                ))}
                 {Number(order.discount) > 0 && (
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Discount</dt>

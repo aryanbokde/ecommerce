@@ -29,6 +29,8 @@ export const createProductSchema = z.object({
   stock: nonNegativeInt.default(0),
   lowStockAt: nonNegativeInt.default(5),
   weight: positive.optional(),
+  // Tax override percent (0–100). null/omitted = inherit the category chain.
+  taxRate: z.number().min(0).max(100).nullable().optional(),
   categoryId: z.string().trim().min(1).optional(),
   images: z.array(z.string().trim().min(1)).max(20).optional(),
   tags: z.array(z.string().trim().min(1)).max(50).optional(),
@@ -50,6 +52,7 @@ export const updateProductSchema = z
     stock: nonNegativeInt,
     lowStockAt: nonNegativeInt,
     weight: positive.nullable(),
+    taxRate: z.number().min(0).max(100).nullable(),
     categoryId: z.string().trim().min(1).nullable(),
     images: z.array(z.string().trim().min(1)).max(20),
     tags: z.array(z.string().trim().min(1)).max(50),

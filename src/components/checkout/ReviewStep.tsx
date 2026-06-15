@@ -9,12 +9,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RazorpayCheckout, openRazorpay } from "./RazorpayCheckout";
 import { useCheckout } from "@/hooks/useCheckout";
 import { useCart, type CartItem } from "@/hooks/useCart";
+import { previewTax } from "@/lib/tax-preview";
 import { notifySuccess, notifyError, notifyWarning } from "@/lib/notify";
 import type { Address } from "@/types";
 
 const FREE_SHIPPING_THRESHOLD = 999;
 const SHIPPING_FEE = 99;
-const TAX_RATE = 0.18;
 
 function formatPrice(value: number): string {
   return `₹${value.toLocaleString("en-IN", {
@@ -34,7 +34,7 @@ function computeTotals(items: CartItem[]) {
     0
   );
   const shipping = subtotal > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
-  const tax = subtotal * TAX_RATE;
+  const tax = previewTax(items); // per-line, matches the server order tax
   return { subtotal, shipping, tax, total: subtotal + shipping + tax };
 }
 
@@ -278,7 +278,7 @@ export function ReviewStep() {
             </dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">Tax (18%)</dt>
+            <dt className="text-muted-foreground">Tax</dt>
             <dd className="text-foreground tabular-nums">
               {formatPrice(totals.tax)}
             </dd>
