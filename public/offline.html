@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <title>Offline — MyShop</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        background: #0a0a0a;
+        color: #e5e5e5;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        text-align: center;
+        padding: 24px;
+      }
+      .card { max-width: 22rem; }
+      .mark {
+        width: 64px; height: 64px; margin: 0 auto 20px;
+        border-radius: 16px; background: #219ebc;
+        display: grid; place-items: center;
+        font-size: 34px; font-weight: 800; color: #fff;
+      }
+      h1 { font-size: 1.25rem; margin: 0 0 8px; }
+      p { color: #a3a3a3; font-size: 0.9rem; line-height: 1.5; margin: 0 0 20px; }
+      button {
+        appearance: none; border: 0; cursor: pointer;
+        background: #219ebc; color: #fff; font-weight: 600;
+        padding: 10px 18px; border-radius: 10px; font-size: 0.9rem;
+      }
+      button:hover { background: #1b86a0; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="mark">M</div>
+      <h1>You're offline</h1>
+      <p>
+        We can't reach MyShop right now. Check your connection and try again —
+        pages you've already visited still work.
+      </p>
+      <button onclick="location.reload()">Try again</button>
+    </div>
+  </body>
+</html>

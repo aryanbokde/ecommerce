@@ -4,6 +4,7 @@ import { Geist, Geist_Mono, Inter, Poppins } from "next/font/google";
 import { Toaster } from "sonner";
 import JsonLd from "@/components/shared/JsonLd";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 import { setupGlobalErrorHandlers } from "@/lib/global-error-handler";
 import "./globals.css";
 
@@ -70,7 +71,20 @@ export const metadata: Metadata = {
   },
   twitter: { card: "summary_large_image" },
   robots: { index: true, follow: true },
-  icons: { icon: "/favicon.ico" },
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
+  // iOS add-to-home-screen: standalone, dark status bar, app title.
+  appleWebApp: {
+    capable: true,
+    title: "MyShop",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 // `themeColor` lives in the viewport export in Next 16 (not in metadata).
@@ -102,6 +116,7 @@ export default function RootLayout({
           <JsonLd schema={organizationSchema} />
           {children}
           <Toaster richColors closeButton position="top-right" />
+          <ServiceWorkerRegister />
         </ThemeProvider>
       </body>
     </html>

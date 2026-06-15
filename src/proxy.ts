@@ -106,8 +106,9 @@ function addSecurityHeaders(res: NextResponse) {
 
 export const config = {
   matcher: [
-    // Skip Next internals, image assets, AND public SEO files (robots.txt,
-    // sitemap*.xml) — those must stay crawler-reachable, never redirected to /login.
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg|.*\\.svg|.*\\.txt|.*\\.xml).*)",
+    // Skip Next internals, image assets, public SEO files (robots.txt,
+    // sitemap*.xml) AND the PWA files (service worker, web manifest, offline
+    // page) — all must stay reachable without auth, never redirected to /login.
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.webmanifest|offline\\.html|.*\\.png|.*\\.jpg|.*\\.svg|.*\\.webmanifest|.*\\.txt|.*\\.xml).*)",
   ],
 };
