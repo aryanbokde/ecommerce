@@ -92,7 +92,9 @@ export async function getCategoriesWithCounts(): Promise<
 > {
   const rows = await prisma.category.findMany({
     where: { isActive: true },
-    include: { _count: { select: { products: true } } },
+    // Storefront counts must match the product grid, which only ever shows
+    // active products — count active only (else sidebar says 9, grid shows 8).
+    include: { _count: { select: { products: { where: { isActive: true } } } } },
   });
   return rows
     .map(({ _count, ...rest }) => ({ ...rest, productCount: _count.products }))
@@ -104,7 +106,9 @@ export async function getCategoryTree(): Promise<CategoryNode[]> {
   const categories = await prisma.category.findMany({
     where: { isActive: true },
     orderBy,
-    include: { _count: { select: { products: true } } },
+    // Storefront counts must match the product grid, which only ever shows
+    // active products — count active only (else sidebar says 9, grid shows 8).
+    include: { _count: { select: { products: { where: { isActive: true } } } } },
   });
 
   const byId = new Map<string, CategoryNode>();
@@ -172,7 +176,9 @@ export async function getNonEmptyCategoryTree(): Promise<CategoryNode[]> {
 export async function getCategoryBySlug(slug: string) {
   const category = await prisma.category.findUnique({
     where: { slug },
-    include: { _count: { select: { products: true } } },
+    // Storefront counts must match the product grid, which only ever shows
+    // active products — count active only (else sidebar says 9, grid shows 8).
+    include: { _count: { select: { products: { where: { isActive: true } } } } },
   });
   if (!category) {
     throw new AppError("Category not found", ErrorCode.NOT_FOUND, 404);

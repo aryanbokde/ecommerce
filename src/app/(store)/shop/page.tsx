@@ -65,7 +65,7 @@ async function getCategoriesWithCounts(): Promise<CategoryWithMeta[]> {
     const rows = await prisma.category.findMany({
       where: { isActive: true },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      include: { _count: { select: { products: true } } },
+      include: { _count: { select: { products: { where: { isActive: true } } } } },
     });
 
     const childrenByParent = new Map<
@@ -110,7 +110,7 @@ async function getCategoryBySlug(slug: string) {
   try {
     const category = await prisma.category.findFirst({
       where: { slug, isActive: true },
-      include: { _count: { select: { products: true } } },
+      include: { _count: { select: { products: { where: { isActive: true } } } } },
     });
     if (!category) return null;
     return {
