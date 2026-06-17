@@ -21,6 +21,7 @@ export type CategoryNode = Category & {
 const orderBy: Prisma.CategoryOrderByWithRelationInput[] = [
   { sortOrder: "asc" },
   { name: "asc" },
+  { id: "desc" },
 ];
 
 function slugify(input: string): string {

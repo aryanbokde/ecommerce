@@ -56,7 +56,7 @@ export async function searchCustomers(opts: {
   const [users, total] = await Promise.all([
     prisma.user.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       skip: (page - 1) * limit,
       take: limit,
       select: { ...SAFE_USER_SELECT, _count: { select: { orders: true } } },
@@ -157,7 +157,7 @@ export async function getCustomerDetail(
     prisma.review.count({ where: { userId: id } }),
     prisma.order.findMany({
       where: { userId: id },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: 10,
       select: {
         id: true,

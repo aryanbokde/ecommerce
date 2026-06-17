@@ -61,7 +61,9 @@ export const GET = withErrorHandler(async (req: NextRequest) => {
     prisma.user.findMany({
       where,
       select: safeUserSelect,
-      orderBy: { createdAt: "desc" },
+      // `id` tiebreaker → stable pagination when createdAt ties (else rows can
+      // skip/duplicate across pages).
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       skip: (page - 1) * limit,
       take: limit,
     }),

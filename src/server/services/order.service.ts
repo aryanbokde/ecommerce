@@ -385,7 +385,7 @@ export async function getUserOrders(
   const [orders, total] = await Promise.all([
     prisma.order.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       skip: (page - 1) * limit,
       take: limit,
       include: orderInclude,
@@ -415,7 +415,7 @@ export async function getAllOrders(filters: OrderQuery) {
   const [orders, total] = await Promise.all([
     prisma.order.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       skip: (page - 1) * limit,
       take: limit,
       include: {

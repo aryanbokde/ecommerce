@@ -38,7 +38,7 @@ export async function getSupportStats() {
         where: { status: "shipped", updatedAt: { gte: startOfToday } },
       }),
       prisma.order.findMany({
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: 10,
         select: {
           id: true,

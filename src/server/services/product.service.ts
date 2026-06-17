@@ -102,10 +102,14 @@ export async function getProducts(
   };
 
   // "reviews" sorts by related review count; everything else is a scalar field.
-  const orderBy: Prisma.ProductOrderByWithRelationInput =
+  // A trailing `id` tiebreaker keeps the order DETERMINISTIC + identical across
+  // every caller (admin grid, storefront, related). Without it, rows that share
+  // a sort value — e.g. the whole seed batch carries the same createdAt — come
+  // back in arbitrary physical order that differs per query.
+  const orderBy: Prisma.ProductOrderByWithRelationInput[] =
     sortBy === "reviews"
-      ? { reviews: { _count: sortOrder } }
-      : { [sortBy]: sortOrder };
+      ? [{ reviews: { _count: sortOrder } }, { id: "desc" }]
+      : [{ [sortBy]: sortOrder }, { id: "desc" }];
 
   const [products, total] = await Promise.all([
     prisma.product.findMany({
@@ -200,7 +204,7 @@ export async function deleteProduct(id: string) {
 export async function getFeaturedProducts(limit = 8) {
   return prisma.product.findMany({
     where: { isActive: true, isFeatured: true },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: limit,
     include: { category: categoryPreview },
   });

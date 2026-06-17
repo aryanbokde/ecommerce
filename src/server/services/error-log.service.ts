@@ -63,7 +63,7 @@ export async function getErrorLogs(filters: ErrorLogFilters = {}) {
   const [items, total] = await Promise.all([
     prisma.errorLog.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       skip: (page - 1) * limit,
       take: limit,
     }),

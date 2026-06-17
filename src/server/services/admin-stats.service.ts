@@ -132,7 +132,7 @@ export async function getAdminStats() {
     prisma.return.count({ where: { status: "requested", seenByAdmin: false } }),
     prisma.errorLog.count({ where: { seenByAdmin: false } }),
     prisma.order.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: 5,
       select: {
         id: true,

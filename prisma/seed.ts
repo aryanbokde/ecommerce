@@ -379,6 +379,9 @@ async function seedProducts(leaves: { id: string; type: LeafType }[]) {
         tags: faker.helpers.arrayElements(TAGS[leaf.type], { min: 2, max: 4 }),
         isActive: !inactiveIdx.has(gi),
         isFeatured: featuredIdx.has(gi),
+        // Spread over ~60 days so "newest first" is meaningful (a createMany
+        // with no createdAt stamps every row the same now() → ties).
+        createdAt: faker.date.recent({ days: 60 }),
       });
       gi++;
     }

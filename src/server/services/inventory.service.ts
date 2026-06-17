@@ -186,7 +186,7 @@ export async function getStockHistory(
   const [items, total] = await Promise.all([
     prisma.stockMovement.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       skip: (page - 1) * limit,
       take: limit,
       include: { user: { select: { id: true, name: true } } },
@@ -204,7 +204,7 @@ export async function getLowStockProducts() {
       isActive: true,
       stock: { gt: 0, lte: prisma.product.fields.lowStockAt },
     },
-    orderBy: { stock: "asc" },
+    orderBy: [{ stock: "asc" }, { id: "desc" }],
     include: { category: { select: { id: true, name: true, slug: true } } },
   });
 }
@@ -213,7 +213,7 @@ export async function getLowStockProducts() {
 export async function getOutOfStockProducts() {
   return prisma.product.findMany({
     where: { isActive: true, stock: 0 },
-    orderBy: { updatedAt: "desc" },
+    orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
     include: { category: { select: { id: true, name: true, slug: true } } },
   });
 }
